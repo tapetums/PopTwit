@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="ConsoleOut.cpp">
+      <Filter>ソースファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="MainWindow.cpp">
+      <Filter>ソースファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="WinMain.cpp">
+      <Filter>ソースファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Wnd.cpp">
+      <Filter>ソースファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Twitter.cpp">
+      <Filter>ソースファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="IniFile.cpp">
+      <Filter>ソースファイル</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Wnd.hpp">
+      <Filter>ヘッダファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="ConsoleOut.h">
+      <Filter>ヘッダファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="MainWindow.h">
+      <Filter>ヘッダファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="IniFile.h">
+      <Filter>ヘッダファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Twitter.h">
+      <Filter>ヘッダファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="MainWindow.Utl.hpp">
+      <Filter>ヘッダファイル</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="ヘッダファイル">
+      <UniqueIdentifier>{e9f72379-13b4-4d38-b4e3-3320162beac9}</UniqueIdentifier>
+      <Extensions>*.h;*.hpp;</Extensions>
+    </Filter>
+    <Filter Include="リソースファイル">
+      <UniqueIdentifier>{e8420a47-365e-4cc5-910a-b240c8a2b8b8}</UniqueIdentifier>
+      <Extensions>*.res;</Extensions>
+    </Filter>
+    <Filter Include="ソースファイル">
+      <UniqueIdentifier>{8ff4b4bf-14f1-4a1e-9fbd-c57d02526db9}</UniqueIdentifier>
+      <Extensions>*.c;*cpp;</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="resources.res">
+      <Filter>リソースファイル</Filter>
+    </Resource>
+  </ItemGroup>
+</Project>
