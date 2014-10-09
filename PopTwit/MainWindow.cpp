@@ -51,7 +51,7 @@ INT32   g_font_size   = 20;
 LPCTSTR g_font_tweet  = TEXT("Meiryo");;
 LPCTSTR g_font_symbol = TEXT("Segoe UI Symbol");;
 
-HFONT font_tweet, font_button, font_symbol;
+HFONT font_tweet, font_account, font_button, font_symbol;
 HWND  cbx_account, txt_tweet;
 HWND  btn_send, btn_close, btn_shorten, btn_pic, btn_new_account;
 
@@ -140,9 +140,10 @@ LRESULT __stdcall MainWindowProc
 
 LRESULT __stdcall OnCreate(HWND hwnd)
 {
-    font_tweet  = MakeFont(g_font_size, g_font_tweet);
-    font_button = MakeFont(16, g_font_symbol);
-    font_symbol = MakeFont(20, g_font_symbol);
+    font_tweet   = MakeFont(g_font_size, g_font_tweet);
+    font_account = MakeFont(18, g_font_tweet);
+    font_button  = MakeFont(16, g_font_symbol);
+    font_symbol  = MakeFont(20, g_font_symbol);
 
     cbx_account =::CreateWindowEx
     (
@@ -168,7 +169,7 @@ LRESULT __stdcall OnCreate(HWND hwnd)
             ::SendMessage(cbx_account, CB_SETCURSEL, index, 0);
         }
     }
-    ::SendMessage(cbx_account, WM_SETFONT, (WPARAM)font_tweet, (LPARAM)FALSE);
+    ::SendMessage(cbx_account, WM_SETFONT, (WPARAM)font_account, (LPARAM)FALSE);
     ::SetWindowSubclass
     (
         cbx_account, (SUBCLASSPROC)ComboBoxProc, CTRL_CBX_ACCOUNT, (DWORD_PTR)hwnd
@@ -263,7 +264,9 @@ LRESULT __stdcall OnDestroy(HWND hwnd)
     SaveMessageStub(g_msgstub);
 
     DeleteFont(font_tweet);
+    DeleteFont(font_account);
     DeleteFont(font_button);
+    DeleteFont(font_symbol);
 
     if ( g_hTheme )
     {

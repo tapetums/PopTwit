@@ -16,6 +16,7 @@
 
 #include "ConsoleOut.h"
 #include "Twitter.h"
+#include "ConsumerKey.h"
 
 //---------------------------------------------------------------------------//
 // twitcurl ライブラリ を使用
@@ -273,8 +274,8 @@ bool __stdcall Tweet
     std::string replyMsg;
 
     // ここに自分のコンシューマキーを入力
-    std::string myConsumerKey( "" );
-    std::string myConsumerSecuret( "" );
+    std::string myConsumerKey( CONSUMER_KEY );
+    std::string myConsumerSecuret( CONSUMER_KEY_SECRET );
 
     // OAuth flow begins
     twitterObj.getOAuth().setConsumerKey( myConsumerKey );
