@@ -12,7 +12,6 @@
 // グローバル変数
 //---------------------------------------------------------------------------//
 
-extern LPCTSTR   APP_NAME;
 extern HINSTANCE g_hInst;
 
 extern UINT WM_NOTIFYICON;

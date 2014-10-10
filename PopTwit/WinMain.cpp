@@ -121,7 +121,7 @@ INT32 WINAPI _tWinMain
     }
     Wnd::Resize(hwnd, 400, 128);
     Wnd::ToCenter(hwnd);
-    Wnd::Show(hwnd);
+    Wnd::Show(hwnd, SW_SHOW);
 
     // メッセージループ
     MSG msg = { };

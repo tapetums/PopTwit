@@ -114,13 +114,13 @@ char8_t* toUTF8(const char* str_mbcs)
 //---------------------------------------------------------------------------//
 
 // UTF-16 -> UTF-8
-char8_t* toUTF8(const char16_t* str_u16)
+char8_t* toUTF8(const wchar_t* str_u16)
 {
     thread_local char8_t str_u8[1024];
 
     const auto len = ::WideCharToMultiByte
     (
-        CP_UTF8, 0, (LPCWSTR)str_u16, -1, nullptr, 0, nullptr, nullptr
+        CP_UTF8, 0, str_u16, -1, nullptr, 0, nullptr, nullptr
     );
     if ( len < 1 )
     {
@@ -129,7 +129,7 @@ char8_t* toUTF8(const char16_t* str_u16)
 
     ::WideCharToMultiByte
     (
-        CP_UTF8, 0, (LPCWSTR)str_u16, -1, (LPSTR)str_u8, len, nullptr, nullptr
+        CP_UTF8, 0, str_u16, -1, (LPSTR)str_u8, len, nullptr, nullptr
     );
 
     return str_u8;
@@ -171,7 +171,7 @@ char* __stdcall ReadKeyFromFile(LPCTSTR username, LPCTSTR filename)
 
 //---------------------------------------------------------------------------//
 
-bool __stdcall WriteKeyToFile(LPCTSTR username, LPCTSTR filename, const char8_t* key)
+bool __stdcall WriteKeyAsFile(LPCTSTR username, LPCTSTR filename, const char8_t* key)
 {
     TCHAR path[MAX_PATH];
     ::SHGetFolderPath(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, path);
@@ -201,6 +201,23 @@ bool __stdcall WriteKeyToFile(LPCTSTR username, LPCTSTR filename, const char8_t*
     ::CloseHandle(hFile);
 
     return (dw > 0) ? true : false;
+}
+
+//---------------------------------------------------------------------------//
+
+bool __stdcall DeleteKeyFile(LPCTSTR username, LPCTSTR filename)
+{
+    TCHAR path[MAX_PATH];
+    ::SHGetFolderPath(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, path);
+
+    TCHAR buf[MAX_PATH];
+    ::StringCchPrintf
+    (
+        buf, MAX_PATH,
+        TEXT("%s\\%s\\%s_%s"), path, APP_NAME, username, filename
+    );
+
+    return  ::DeleteFile(buf) ? true : false;
 }
 
 //---------------------------------------------------------------------------//
@@ -275,7 +292,7 @@ bool __stdcall Tweet
     twitCurl twitterObj;
     std::string replyMsg;
 
-    // ここに自分のコンシューマキーを入力
+    // Your consumer keys
     std::string myConsumerKey( CONSUMER_KEY );
     std::string myConsumerSecuret( CONSUMER_KEY_SECRET );
 
@@ -305,16 +322,12 @@ bool __stdcall Tweet
     }
     else
     {
-    #ifdef _UNICODE
-        std::string userName( (char*)toUTF8((char16_t*)username) );
-    #else
         std::string userName( (char*)toUTF8(username) );
-    #endif
         std::string passWord;
 
         do
         {
-            // パスワードの入力を求める
+            // Show dialog box for password
             DlgData data = { username, buf };
             const auto ret = ::DialogBoxParam
             (
@@ -322,16 +335,10 @@ bool __stdcall Tweet
             );
             if ( ret == IDCANCEL )
             {
-                console_out(TEXT("CXL"));
+                console_out(TEXT("%s: Tweet canceled"), APP_NAME);
                 return false;
             }
-
-        #ifdef _UNICODE
-            passWord = (char*)toUTF8((char16_t*)buf);
-        #else
             passWord = (char*)toUTF8(buf);
-        #endif
-            console_outA(passWord.c_str());
 
             // Retry to get access token key and secret
             twitterObj.setTwitterUsername( userName );
@@ -353,11 +360,11 @@ bool __stdcall Tweet
             twitterObj.getOAuth().getOAuthTokenSecret( myOAuthAccessTokenSecret );
 
             // Step 6: Save these keys in a file or wherever
-            WriteKeyToFile
+            WriteKeyAsFile
             (
                 username, TEXT("token_key"), (char8_t*)myOAuthAccessTokenKey.c_str()
             );
-            WriteKeyToFile
+            WriteKeyAsFile
             (
                 username, TEXT("token_secret"), (char8_t*)myOAuthAccessTokenSecret.c_str()
             );
@@ -377,17 +384,17 @@ bool __stdcall Tweet
             {
                 twitterObj.getLastCurlError( replyMsg );
                 console_outA("accountVerifyCredGet error: %s", replyMsg.c_str());
+
+                // Delete keys which are indicated to be invalid
+                DeleteKeyFile(username, TEXT("token_key"));
+                DeleteKeyFile(username, TEXT("token_secret"));
             }
 
         } while ( true );
     }
 
     // Post a new status message
-#ifdef _UNICODE
-    std::string msgStr( (char*)toUTF8((char16_t*)message) );
-#else
     std::string msgStr( (char*)toUTF8(message) );
-#endif
     replyMsg = (char*)"";
 
     if ( twitterObj.statusUpdate( msgStr ) )

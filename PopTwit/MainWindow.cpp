@@ -422,6 +422,7 @@ LRESULT __stdcall OnCommand(HWND hwnd, UINT16 wId, UINT16 nCode)
     {
         case CTRL_CBX_ACCOUNT:
         {
+            // ユーザーリストの選択中インデックスをグローバル変数に保存
             if ( nCode == CBN_SELCHANGE )
             {
                 g_user_index = ::SendMessage
@@ -434,11 +435,7 @@ LRESULT __stdcall OnCommand(HWND hwnd, UINT16 wId, UINT16 nCode)
         case CTRL_BTN_SEND:
         {
             // 選択中のユーザー名を取得
-            TCHAR username[MAX_PATH];
-            ::SendMessage
-            (
-                cbx_user, CB_GETLBTEXT, g_user_index, (LPARAM)username
-            );
+            const auto username = g_username[g_user_index];
             if ( username[0] == '\0' )
             {
                 // ユーザー名が空の場合は送信しない
@@ -447,8 +444,8 @@ LRESULT __stdcall OnCommand(HWND hwnd, UINT16 wId, UINT16 nCode)
             }
 
             // エディットボックスからメッセージを取得
-            TCHAR message[MAX_PATH];
-            ::GetWindowText(txt_tweet, message, MAX_PATH);
+            TCHAR message[MAX_MESSAGE_LEN];
+            ::GetWindowText(txt_tweet, message, MAX_MESSAGE_LEN);
             if ( message[0] == '\0' )
             {
                 // 空のメッセージは送信しない

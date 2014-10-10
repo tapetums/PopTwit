@@ -45,7 +45,7 @@ static void __stdcall ShowLastError()
         0,
         nullptr
     );
-    MessageBox(nullptr, lpMsgBuf, APP_NAME, MB_OK);
+    MessageBox(nullptr, lpMsgBuf, TEXT("GetLastError()"), MB_OK);
     ::LocalFree(lpMsgBuf);
 }
 
