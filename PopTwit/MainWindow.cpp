@@ -51,9 +51,9 @@ INT32   g_font_size   = 20;
 LPCTSTR g_font_tweet  = TEXT("Meiryo");;
 LPCTSTR g_font_symbol = TEXT("Segoe UI Symbol");;
 
-HFONT font_tweet, font_account, font_button, font_symbol;
-HWND  cbx_account, txt_tweet;
-HWND  btn_send, btn_close, btn_shorten, btn_pic, btn_new_account;
+HFONT font_tweet, font_user, font_button, font_symbol;
+HWND  cbx_user, txt_tweet;
+HWND  btn_send, btn_close, btn_shorten, btn_pic, btn_user;
 
 //---------------------------------------------------------------------------//
 // コントロール識別子
@@ -67,6 +67,7 @@ enum Controls : UINT32
     CTRL_BTN_CLOSE,
     CTRL_BTN_PICTURE,
     CTRL_BTN_SHORTEN_URL,
+    CTRL_BTN_USER,
 };
 
 //---------------------------------------------------------------------------//
@@ -99,11 +100,11 @@ LRESULT __stdcall MainWindowProc
         }
         case WM_SETFOCUS:
         {
-            ::SetFocus(txt_tweet); return 0;
+            ::SetFocus(txt_tweet); break;
         }
-        case WM_PAINT:
+        case WM_ERASEBKGND:
         {
-            return OnPaint(hwnd);
+            return OnEraseBkGnd((HDC)wp);
         }
         case WM_NCHITTEST:
         {
@@ -115,7 +116,7 @@ LRESULT __stdcall MainWindowProc
         }
         case WM_COMMAND:
         {
-            return OnCommand(hwnd, LOWORD(wp));
+            return OnCommand(hwnd, LOWORD(wp), HIWORD(wp));
         }
         case WM_DWMCOMPOSITIONCHANGED:
         {
@@ -140,54 +141,44 @@ LRESULT __stdcall MainWindowProc
 
 LRESULT __stdcall OnCreate(HWND hwnd)
 {
-    font_tweet   = MakeFont(g_font_size, g_font_tweet);
-    font_account = MakeFont(18, g_font_tweet);
-    font_button  = MakeFont(16, g_font_symbol);
-    font_symbol  = MakeFont(20, g_font_symbol);
+    // ダブルバッファリングを開始
+    ::BufferedPaintInit();
 
-    cbx_account =::CreateWindowEx
+    // フォントを生成
+    font_tweet  = MakeFont(g_font_size, g_font_tweet);
+    font_user   = MakeFont(18, g_font_tweet);
+    font_button = MakeFont(16, g_font_symbol);
+    font_symbol = MakeFont(20, g_font_symbol);
+
+    // コントロールを生成
+    cbx_user =::CreateWindowEx
     (
-        WS_EX_ACCEPTFILES, TEXT("COMBOBOX"), TEXT("アカウントを選択"),
+        WS_EX_ACCEPTFILES, TEXT("COMBOBOX"), TEXT("username"),
         WS_CHILD | WS_BORDER | WS_VISIBLE |
         CBS_DROPDOWNLIST,
         0, 0, 128, 24,
-        hwnd, nullptr, g_hInst, nullptr
+        hwnd, (HMENU)CTRL_CBX_ACCOUNT, g_hInst, nullptr
     );
-
-    ::SendMessage(cbx_account, CB_SETCURSEL, 0, 0);
-    for ( size_t index = 0; index < MAX_ACCOUNT; ++index )
-    {
-        const auto username = g_username[index];
-        if ( username[0] == '\0' )
-        {
-            break;
-        }
-        ::SendMessage(cbx_account, CB_ADDSTRING, index, (LPARAM)username);
-
-        if ( index == g_user_index )
-        {
-            ::SendMessage(cbx_account, CB_SETCURSEL, index, 0);
-        }
-    }
-    ::SendMessage(cbx_account, WM_SETFONT, (WPARAM)font_account, (LPARAM)FALSE);
+    ::SendMessage(cbx_user, WM_SETFONT, (WPARAM)font_user, (LPARAM)FALSE);
+    SetUserNamesToComboBox(cbx_user);
     ::SetWindowSubclass
     (
-        cbx_account, (SUBCLASSPROC)ComboBoxProc, CTRL_CBX_ACCOUNT, (DWORD_PTR)hwnd
+        cbx_user, (SUBCLASSPROC)ComboBoxProc, CTRL_CBX_ACCOUNT, (DWORD_PTR)hwnd
     );
 
     txt_tweet = ::CreateWindowEx
     (
-        WS_EX_ACCEPTFILES, TEXT("EDIT"), TEXT(""),
+        WS_EX_ACCEPTFILES, TEXT("EDIT"), TEXT("message"),
         WS_CHILD | WS_BORDER | WS_VISIBLE |
         ES_LEFT | ES_NOHIDESEL | ES_MULTILINE | ES_AUTOVSCROLL |
         ES_WANTRETURN,
         0, 0, 320, 240,
         hwnd, nullptr, g_hInst, nullptr
     );
+    ::SendMessage(txt_tweet, WM_SETFONT, (WPARAM)font_tweet, (LPARAM)FALSE);
     ClearMessagestub(g_msgstub);
     LoadMessageStub(g_msgstub);
-    ::SendMessage(txt_tweet, WM_SETFONT, (WPARAM)font_tweet, (LPARAM)FALSE);
-    ::SendMessage(txt_tweet, WM_SETTEXT, 0, (LPARAM)g_msgstub);
+    ::SetWindowText(txt_tweet, g_msgstub);
     ::SetWindowSubclass
     (
         txt_tweet, (SUBCLASSPROC)TextBoxProc, CTRL_TXT_TWEET, (DWORD_PTR)hwnd
@@ -247,9 +238,24 @@ LRESULT __stdcall OnCreate(HWND hwnd)
         btn_pic, (SUBCLASSPROC)ButtonProc, CTRL_BTN_PICTURE, (DWORD_PTR)hwnd
     );
 
-    ::BufferedPaintInit();
+    btn_user = ::CreateWindowEx
+    (
+        0, TEXT("BUTTON"), TEXT("👤"),
+        WS_CHILD | WS_VISIBLE |
+        BS_PUSHBUTTON | BS_CENTER | BS_VCENTER,
+        0, 0, 24, 24,
+        hwnd, nullptr, g_hInst, nullptr
+    );
+    ::SendMessage(btn_user, WM_SETFONT, (WPARAM)font_symbol, (LPARAM)FALSE);
+    ::SetWindowSubclass
+    (
+        btn_user, (SUBCLASSPROC)ButtonProc, CTRL_BTN_USER, (DWORD_PTR)hwnd
+    );
+
+    // Aero Glass 効果をオンに
     OnThemeChanged(hwnd);
 
+    // メッセージウィンドウにフォーカスを移動
     ::SetFocus(txt_tweet);
 
     return 0;
@@ -259,22 +265,27 @@ LRESULT __stdcall OnCreate(HWND hwnd)
 
 LRESULT __stdcall OnDestroy(HWND hwnd)
 {
-    g_user_index = ::SendMessage(cbx_account, CB_GETCURSEL, 0, 0);
+    // 書きかけのメッセージをファイルに保存
     ::GetWindowText(txt_tweet, g_msgstub, MAX_MESSAGE_LEN);
     SaveMessageStub(g_msgstub);
 
+    // フォントを破棄
     DeleteFont(font_tweet);
-    DeleteFont(font_account);
+    DeleteFont(font_user);
     DeleteFont(font_button);
     DeleteFont(font_symbol);
 
+    // ビジュアルスタイルのテーマを破棄
     if ( g_hTheme )
     {
         ::CloseThemeData(g_hTheme);
         g_hTheme = nullptr;
     }
 
+    // ダブルバッファリングを終了
     ::BufferedPaintUnInit();
+
+    // アプリケーションを終了
     ::PostQuitMessage(0);
 
     return 0;
@@ -284,11 +295,11 @@ LRESULT __stdcall OnDestroy(HWND hwnd)
 
 LRESULT __stdcall OnSize(HWND hwnd, INT32 w, INT32 h)
 {
-    static const auto EXWIDTH = LEFTEXTENDWIDTH + RIGHTEXTENDWIDTH;
+    const auto EXWIDTH = LEFTEXTENDWIDTH + RIGHTEXTENDWIDTH;
 
     Wnd::Bounds
     (
-        cbx_account,
+        cbx_user,
         w - 128 - LEFTEXTENDWIDTH, 5, 128, 24
     );
     Wnd::Bounds
@@ -308,13 +319,18 @@ LRESULT __stdcall OnSize(HWND hwnd, INT32 w, INT32 h)
     );
     Wnd::Bounds
     (
+        btn_pic,
+        LEFTEXTENDWIDTH, h - 24 - BOTTOMEXTENDWIDTH, 24, 24
+    );
+    Wnd::Bounds
+    (
         btn_shorten,
         4 + 24 + LEFTEXTENDWIDTH, h - 24 - BOTTOMEXTENDWIDTH, 24, 24
     );
     Wnd::Bounds
     (
-        btn_pic,
-        LEFTEXTENDWIDTH, h - 24 - BOTTOMEXTENDWIDTH, 24, 24
+        btn_user,
+        w - 156 - LEFTEXTENDWIDTH, 6, 24, 24
     );
 
     return 0;
@@ -322,21 +338,21 @@ LRESULT __stdcall OnSize(HWND hwnd, INT32 w, INT32 h)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall OnPaint(HWND hwnd)
+LRESULT __stdcall OnEraseBkGnd(HDC hDC)
 {
-    PAINTSTRUCT ps;
-    const auto hDC = BeginPaint(hwnd, &ps);
+    RECT rc;
+    ::GetClipBox(hDC, &rc);
 
+    HBRUSH hbr;
     if ( Wnd::IsCompositionEnabled() )
     {
-        ::FillRect(hDC, &ps.rcPaint, (HBRUSH)::GetStockObject(BLACK_BRUSH));
+        hbr = (HBRUSH)GetStockObject(BLACK_BRUSH);
     }
     else
     {
-        ::FillRect(hDC, &ps.rcPaint, (HBRUSH)::GetStockObject(WHITE_BRUSH));
+        hbr = GetSysColorBrush(COLOR_BTNFACE);
     }
-
-    EndPaint(hwnd, &ps);
+    ::FillRect(hDC, &rc, hbr);
 
     return 0;
 }
@@ -347,17 +363,25 @@ LRESULT __stdcall OnKeyDown(HWND hwnd, INT16 nVirtKey, INT16 lKeyData)
 {
     switch ( nVirtKey )
     {
+        case 'U':
+        {
+            if ( 0x80 & ::GetKeyState(VK_CONTROL) )
+            {
+                OnCommand(hwnd, CTRL_BTN_USER, 0);
+            }
+            break;
+        }
         case VK_RETURN:
         {
             if ( 0x80 & ::GetKeyState(VK_CONTROL) )
             {
-                OnCommand(hwnd, CTRL_BTN_SEND);
+                OnCommand(hwnd, CTRL_BTN_SEND, 0);
             }
             break;
         }
         case VK_ESCAPE:
         {
-            OnCommand(hwnd, CTRL_BTN_CLOSE);
+            OnCommand(hwnd, CTRL_BTN_CLOSE, 0);
             break;
         }
         case VK_UP:
@@ -365,18 +389,19 @@ LRESULT __stdcall OnKeyDown(HWND hwnd, INT16 nVirtKey, INT16 lKeyData)
         {
             if ( 0x80 & ::GetKeyState(VK_CONTROL) )
             {
-                const auto count = ::SendMessage(cbx_account, CB_GETCOUNT, 0, 0);
-                auto index = ::SendMessage(cbx_account, CB_GETCURSEL, 0, 0);
+                const auto count = ::SendMessage(cbx_user, CB_GETCOUNT, 0, 0);
+                auto index = ::SendMessage(cbx_user, CB_GETCURSEL, 0, 0);
 
                 if ( nVirtKey == VK_UP && index > 0 && --index < count )
                 {
-                    ::SendMessage(cbx_account, CB_SETCURSEL, index, 0);
+                    ::SendMessage(cbx_user, CB_SETCURSEL, index, 0);
                 }
-                if ( nVirtKey == VK_DOWN && index <count && ++index >= 0 )
+                else if ( nVirtKey == VK_DOWN && index < count && ++index >= 0 )
                 {
-                    ::SendMessage(cbx_account, CB_SETCURSEL, index, 0);
+                    ::SendMessage(cbx_user, CB_SETCURSEL, index, 0);
                 }
-                Wnd::Refresh(cbx_account);
+                OnCommand(hwnd, CTRL_CBX_ACCOUNT, CBN_SELCHANGE);
+                Wnd::Refresh(cbx_user);
             }
             break;
         }
@@ -391,40 +416,53 @@ LRESULT __stdcall OnKeyDown(HWND hwnd, INT16 nVirtKey, INT16 lKeyData)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall OnCommand(HWND hwnd, UINT16 wId)
+LRESULT __stdcall OnCommand(HWND hwnd, UINT16 wId, UINT16 nCode)
 {
     switch ( wId )
     {
+        case CTRL_CBX_ACCOUNT:
+        {
+            if ( nCode == CBN_SELCHANGE )
+            {
+                g_user_index = ::SendMessage
+                (
+                    cbx_user, CB_GETCURSEL, 0, 0
+                );
+            }
+            break;
+        }
         case CTRL_BTN_SEND:
         {
-            const auto index = ::SendMessage
+            // 選択中のユーザー名を取得
+            TCHAR username[MAX_PATH];
+            ::SendMessage
             (
-                cbx_account, CB_GETCURSEL, 0, 0
+                cbx_user, CB_GETLBTEXT, g_user_index, (LPARAM)username
             );
-            if ( index == 0 )
+            if ( username[0] == '\0' )
             {
-                ::MessageBox
-                (
-                    nullptr, TEXT("アカウントが選択されていません"), APP_NAME, MB_OK
-                );
+                // ユーザー名が空の場合は送信しない
                 ::SetFocus(txt_tweet);
                 break;
             }
 
-            TCHAR username[MAX_PATH];
-            ::SendMessage
-            (
-                cbx_account, CB_GETLBTEXT, index, (LPARAM)username
-            );
-
+            // エディットボックスからメッセージを取得
             TCHAR message[MAX_PATH];
             ::GetWindowText(txt_tweet, message, MAX_PATH);
+            if ( message[0] == '\0' )
+            {
+                // 空のメッセージは送信しない
+                ::SetFocus(txt_tweet);
+                break;
+            }
 
-            const auto ret = Tweet(hwnd, index, username, message);
+            // ツイートする
+            const auto ret = Tweet(hwnd, g_user_index, username, message);
             if ( ret )
             {
+                // 送信に成功したらエディットボックスを空にする
                 ClearMessagestub(g_msgstub);
-                ::SendMessage(txt_tweet, WM_SETTEXT, 0, (LPARAM)g_msgstub);
+                ::SetWindowText(txt_tweet, g_msgstub);
             }
             ::SetFocus(txt_tweet);
 
@@ -432,6 +470,7 @@ LRESULT __stdcall OnCommand(HWND hwnd, UINT16 wId)
         }
         case CTRL_BTN_CLOSE:
         {
+            // ウィンドウを閉じる
             ::PostMessage(hwnd, WM_CLOSE, 0, 0);
             break;
         }
@@ -446,6 +485,25 @@ LRESULT __stdcall OnCommand(HWND hwnd, UINT16 wId)
             ::MessageBox(nullptr, TEXT("未実装です"), APP_NAME, MB_OK);
             ::SetFocus(txt_tweet);
             break; // TODO: ShortenURL() の実装
+        }
+        case CTRL_BTN_USER:
+        {
+            // ユーザーリスト編集画面を表示
+            ::DialogBoxParam
+            (
+                g_hInst, MAKEINTRESOURCE(2000), hwnd,
+                (DLGPROC)UserListDlgProc, (LPARAM)g_username
+            );
+
+            // コンボボックスをクリア
+            ClearComboBox(cbx_user);
+
+            // コンボボックスの項目を再作成
+            SetUserNamesToComboBox(cbx_user);
+            Wnd::Refresh(cbx_user);
+            ::SetFocus(txt_tweet);
+
+            break;
         }
         default:
         {

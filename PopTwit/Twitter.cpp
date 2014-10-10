@@ -65,33 +65,34 @@ struct DlgData
 
 //---------------------------------------------------------------------------//
 
-typedef unsigned char char8_t; // ASCII と UTF-8 を区別するため
+typedef unsigned char char8_t; // MBCS と UTF-8 を区別するため
 
 //---------------------------------------------------------------------------//
 
 // MBCS -> UTF-8
-char8_t* toUTF8(const char* str)
+char8_t* toUTF8(const char* str_mbcs)
 {
-    thread_local wchar_t tmp[1024];
-    thread_local char8_t buf[1024];
+    thread_local char16_t str_u16[1024];
+    thread_local char8_t  str_u8 [1024];
 
     int len = 0;
     len = ::MultiByteToWideChar
     (
-        CP_ACP, 0, str, -1, nullptr, 0
+        CP_ACP, 0, str_mbcs, -1, nullptr, 0
     );
     if ( len < 1 )
     {
         return nullptr;
     }
+
     ::MultiByteToWideChar
     (
-        CP_ACP, 0, str, len, tmp, 1024
+        CP_ACP, 0, str_mbcs, len, (LPWSTR)str_u16, 1024
     );
 
     len = ::WideCharToMultiByte
     (
-        CP_UTF8, 0, tmp, -1, nullptr, 0, nullptr, nullptr
+        CP_UTF8, 0, (LPCWSTR)str_u16, -1, nullptr, 0, nullptr, nullptr
     );
     if ( len < 1 )
     {
@@ -100,22 +101,22 @@ char8_t* toUTF8(const char* str)
 
     ::WideCharToMultiByte
     (
-        CP_UTF8, 0, tmp, -1, (LPSTR)buf, len, nullptr, nullptr
+        CP_UTF8, 0, (LPCWSTR)str_u16, -1, (LPSTR)str_u8, len, nullptr, nullptr
     );
 
-    return buf;
+    return str_u8;
 }
 
 //---------------------------------------------------------------------------//
 
 // UTF-16 -> UTF-8
-char8_t* toUTF8(const char16_t* str)
+char8_t* toUTF8(const char16_t* str_u16)
 {
-    thread_local char8_t buf[1024];
+    thread_local char8_t str_u8[1024];
 
     const auto len = ::WideCharToMultiByte
     (
-        CP_UTF8, 0, (LPCWSTR)str, -1, nullptr, 0, nullptr, nullptr
+        CP_UTF8, 0, (LPCWSTR)str_u16, -1, nullptr, 0, nullptr, nullptr
     );
     if ( len < 1 )
     {
@@ -124,16 +125,16 @@ char8_t* toUTF8(const char16_t* str)
 
     ::WideCharToMultiByte
     (
-        CP_UTF8, 0, (LPCWSTR)str, -1, (LPSTR)buf, len, nullptr, nullptr
+        CP_UTF8, 0, (LPCWSTR)str_u16, -1, (LPSTR)str_u8, len, nullptr, nullptr
     );
 
-    return buf;
+    return str_u8;
 }
 
 //---------------------------------------------------------------------------//
 
 // パスワード入力ダイアログのプロシージャ
-BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
+BOOL CALLBACK PassDlgProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
 {
     static LPCTSTR username;
     static LPTSTR  password = nullptr;
@@ -262,7 +263,7 @@ bool __stdcall Tweet
 
         const auto ret = ::MessageBox
         (
-            nullptr, buf, APP_NAME, MB_YESNO | MB_ICONEXCLAMATION | MB_DEFBUTTON1
+            hwnd, buf, APP_NAME, MB_YESNO | MB_ICONEXCLAMATION | MB_DEFBUTTON1
         );
         if ( ret != IDYES )
         {
@@ -282,8 +283,14 @@ bool __stdcall Tweet
     twitterObj.getOAuth().setConsumerSecret( myConsumerSecuret );
 
     // Step 1: Check if we alredy have OAuth access token from a previous run
-    std::string myOAuthAccessTokenKey( ReadKeyFromFile(username, TEXT("token_key")) );
-    std::string myOAuthAccessTokenSecret( ReadKeyFromFile(username, TEXT("token_secret")) );
+    std::string myOAuthAccessTokenKey
+    (
+        ReadKeyFromFile(username, TEXT("token_key"))
+    );
+    std::string myOAuthAccessTokenSecret
+    (
+        ReadKeyFromFile(username, TEXT("token_secret"))
+    );
 
     if ( myOAuthAccessTokenKey.size() && myOAuthAccessTokenSecret.size() )
     {
@@ -300,13 +307,35 @@ bool __stdcall Tweet
     #ifdef _UNICODE
         std::string userName( (char*)toUTF8((char16_t*)username) );
     #else
-        std::string userName( (char*)account_name) );
+        std::string userName( (char*)username) );
     #endif
         std::string passWord;
 
-        // 有効なキーが得られるまで再試行する
         do
         {
+            // パスワードの入力を求める
+            DlgData data = { username, buf };
+            const auto ret = ::DialogBoxParam
+            (
+                g_hInst, MAKEINTRESOURCE(1000), hwnd, (DLGPROC)PassDlgProc, (LPARAM)&data
+            );
+            if ( ret == IDCANCEL )
+            {
+                console_out(TEXT("CXL"));
+                return false;
+            }
+
+        #ifdef _UNICODE
+            passWord = (char*)toUTF8((char16_t*)buf);
+        #else
+            passWord = (char*)toUTF8(pass);
+        #endif
+            console_outA(passWord.c_str());
+
+            // Retry to get access token key and secret
+            twitterObj.setTwitterUsername( userName );
+            twitterObj.setTwitterPassword( passWord );
+
             // Step 2: Get request token key and secret
             std::string authUrl;
             twitterObj.oAuthRequestToken( authUrl );
@@ -348,30 +377,6 @@ bool __stdcall Tweet
                 twitterObj.getLastCurlError( replyMsg );
                 console_outA("accountVerifyCredGet error: %s", replyMsg.c_str());
             }
-
-            // パスワードの入力を求める
-            DlgData data = { username, buf };
-            const auto ret = ::DialogBoxParam
-            (
-                g_hInst, MAKEINTRESOURCE(1000), hwnd, (DLGPROC)DlgProc, (LPARAM)&data
-            );
-            if ( ret == IDCANCEL )
-            {
-                console_out(TEXT("CXL"));
-                return false;
-            }
-        #ifdef _UNICODE
-            passWord = (char*)toUTF8((char16_t*)buf);
-        #else
-            passWord = (char*)toUTF8(pass);
-        #endif
-            console_outA(passWord.c_str());
-
-            // Retry to get access token key and secret
-            twitterObj.setTwitterUsername( userName );
-            twitterObj.setTwitterPassword( passWord );
-            twitterObj.getOAuth().setConsumerKey( myConsumerKey );
-            twitterObj.getOAuth().setConsumerSecret( myConsumerSecuret );
 
         } while ( true );
     }

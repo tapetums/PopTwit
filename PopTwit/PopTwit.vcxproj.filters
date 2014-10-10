@@ -43,15 +43,15 @@
   <ItemGroup>
     <Filter Include="ヘッダファイル">
       <UniqueIdentifier>{e9f72379-13b4-4d38-b4e3-3320162beac9}</UniqueIdentifier>
-      <Extensions>*.h;*.hpp;</Extensions>
+      <Extensions>h;hpp;</Extensions>
     </Filter>
     <Filter Include="リソースファイル">
       <UniqueIdentifier>{e8420a47-365e-4cc5-910a-b240c8a2b8b8}</UniqueIdentifier>
-      <Extensions>*.res;</Extensions>
+      <Extensions>res;</Extensions>
     </Filter>
     <Filter Include="ソースファイル">
       <UniqueIdentifier>{8ff4b4bf-14f1-4a1e-9fbd-c57d02526db9}</UniqueIdentifier>
-      <Extensions>*.c;*cpp;</Extensions>
+      <Extensions>c;cpp;</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>

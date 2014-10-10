@@ -1,6 +1,6 @@
 ﻿//---------------------------------------------------------------------------//
 //
-// IniFile.h
+// IniFile.cpp
 //  INI 設定ファイル 操作関数
 //   Copyright (C) 2014 tapetums
 //
@@ -12,7 +12,6 @@
 #include <shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
 
-#include "ConsoleOut.h"
 #include "IniFile.h"
 
 //---------------------------------------------------------------------------//
@@ -35,9 +34,7 @@ TCHAR  g_msgstub[MAX_MESSAGE_LEN];
 // INI ファイルの読み込み
 bool __stdcall LoadIniFile(LPCTSTR ininame)
 {
-    console_out(TEXT("%s: Opening .ini file...: %s"), APP_NAME, ininame);;
-
-    const bool enabled = ::GetPrivateProfileIntW
+    const auto enabled = (bool)::GetPrivateProfileIntW
     (
         TEXT("settings"), TEXT("enabled"), (INT)true, ininame
     );
@@ -46,40 +43,32 @@ bool __stdcall LoadIniFile(LPCTSTR ininame)
         return false;
     }
 
-    g_ask_each_tweet = ::GetPrivateProfileIntW
+    g_ask_each_tweet = (bool)::GetPrivateProfileIntW
     (
         TEXT("settings"), TEXT("ask_each_tweet"), (INT)true, ininame
     );
-    if ( !enabled )
-    {
-        return false;
-    }
 
     g_user_index = ::GetPrivateProfileIntW
     (
-        TEXT("account"), TEXT("index"), 0, ininame
+        TEXT("user"), TEXT("index"), 0, ininame
     );
 
-    TCHAR buf[64];
-    for ( size_t index = 1; index < MAX_ACCOUNT; ++index )
+    const size_t BUF_SIZE = 64;
+    TCHAR buf[BUF_SIZE];
+
+    for ( size_t index = 0; index < MAX_ACCOUNT; ++index )
     {
 #ifdef _NODEFLIB
-        ::wnsprintf(buf, 64, TEXT("%02X"), index);
+        ::wnsprintf(buf, BUF_SIZE, TEXT("%02X"), index);
 #else
-        ::StringCchPrintf(buf, 64, TEXT("%02X"), index);
+        ::StringCchPrintf(buf, BUF_SIZE, TEXT("%02X"), index);
 #endif
         ::GetPrivateProfileString
         (
-            TEXT("account"), buf,
-            TEXT(""), g_username[index], MAX_PATH, ininame
+            TEXT("user"), buf,
+            TEXT("-"), g_username[index], MAX_PATH, ininame
         );
     }
-
-#ifdef _NODEFLIB
-    ::wnsprintf(g_account[0], MAX_PATH, TEXT("(account)"));
-#else
-    ::StringCchPrintf(g_username[0], MAX_PATH, TEXT("(account)"));
-#endif
 
     return true;
 }
@@ -89,14 +78,13 @@ bool __stdcall LoadIniFile(LPCTSTR ininame)
 // INI ファイルの書き込み
 bool __stdcall SaveIniFile(LPCTSTR ininame)
 {
-    console_out(TEXT("%s: Saving .ini file...: %s"), APP_NAME, ininame);;
-
-    TCHAR buf[64];
+    const size_t BUF_SIZE = 64;
+    TCHAR buf[BUF_SIZE];
 
 #ifdef _NODEFLIB
-    ::wnsprintf(buf, 64, TEXT("%d"), true);
+    ::wnsprintf(buf, BUF_SIZE, TEXT("%d"), true);
 #else
-    ::StringCchPrintf(buf, 64, TEXT("%d"), true);
+    ::StringCchPrintf(buf, BUF_SIZE, TEXT("%d"), true);
 #endif
     ::WritePrivateProfileString
     (
@@ -104,9 +92,9 @@ bool __stdcall SaveIniFile(LPCTSTR ininame)
     );
 
 #ifdef _NODEFLIB
-    ::wnsprintf(buf, 64, TEXT("%d"), g_ask_each_tweet);
+    ::wnsprintf(buf, BUF_SIZE, TEXT("%d"), g_ask_each_tweet);
 #else
-    ::StringCchPrintf(buf, 64, TEXT("%d"), g_ask_each_tweet);
+    ::StringCchPrintf(buf, BUF_SIZE, TEXT("%d"), g_ask_each_tweet);
 #endif
     ::WritePrivateProfileString
     (
@@ -114,33 +102,31 @@ bool __stdcall SaveIniFile(LPCTSTR ininame)
     );
 
 #ifdef _NODEFLIB
-    ::wnsprintf(buf, 64, TEXT("%d"), g_user_index);
+    ::wnsprintf(buf, BUF_SIZE, TEXT("%d"), g_user_index);
 #else
-    ::StringCchPrintf(buf, 64, TEXT("%d"), g_user_index);
+    ::StringCchPrintf(buf, BUF_SIZE, TEXT("%d"), g_user_index);
 #endif
     ::WritePrivateProfileString
     (
-        TEXT("account"), TEXT("index"), buf, ininame
+        TEXT("user"), TEXT("index"), buf, ininame
     );
 
-    for ( size_t index = 1; index < MAX_ACCOUNT; ++index )
+    for ( size_t index = 0; index < MAX_ACCOUNT; ++index )
     {
 #ifdef _NODEFLIB
-        ::wnsprintf(buf, 64, TEXT("%02X"), index);
+        ::wnsprintf(buf, BUF_SIZE, TEXT("%02X"), index);
 #else
-        ::StringCchPrintf(buf, 64, TEXT("%02X"), index);
+        ::StringCchPrintf(buf, BUF_SIZE, TEXT("%02X"), index);
 #endif
         ::WritePrivateProfileString
         (
-            TEXT("account"), buf, g_username[index], ininame
+            TEXT("user"), buf, g_username[index], ininame
         );
     }
-
-    console_out(TEXT("%s: Saved .ini file"), APP_NAME, ininame);;
 
     return true;
 }
 
 //---------------------------------------------------------------------------//
 
-// IniFile.h
+// IniFile.cpp

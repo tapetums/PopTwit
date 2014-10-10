@@ -94,6 +94,7 @@ INT32 WINAPI _tWinMain
     // COM の初期化
     ::CoInitialize(nullptr);
 
+
     // INI ファイルの読み込み
     TCHAR ininame[MAX_PATH];
     const auto length = ::GetModuleFileName(nullptr, ininame, MAX_PATH);

@@ -6,7 +6,7 @@
 //
 //---------------------------------------------------------------------------//
 
-#define MAX_ACCOUNT 8 + 1
+#define MAX_ACCOUNT 8
 #define MAX_MESSAGE_LEN 1024
 
 //---------------------------------------------------------------------------//
@@ -16,8 +16,7 @@
 extern bool   g_ask_each_tweet;
 extern size_t g_user_index;
 extern TCHAR  g_username[MAX_ACCOUNT][MAX_PATH];
-
-extern TCHAR g_msgstub[MAX_MESSAGE_LEN];
+extern TCHAR  g_msgstub[MAX_MESSAGE_LEN];
 
 //---------------------------------------------------------------------------//
 

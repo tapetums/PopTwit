@@ -9,7 +9,7 @@
 #pragma once
 
 //---------------------------------------------------------------------------//
-// ユーティリティ関数
+// リソース管理まわり
 //---------------------------------------------------------------------------//
 
 HFONT __stdcall MakeFont(INT32 font_size, LPCTSTR font_name)
@@ -105,6 +105,35 @@ bool __stdcall SaveMessageStub(LPCTSTR msgstub)
 }
 
 //---------------------------------------------------------------------------//
+// Windows コントロールまわり
+//---------------------------------------------------------------------------//
+
+void __stdcall SetUserNamesToComboBox(HWND cbx_user)
+{
+    ::SendMessage(cbx_user, CB_SETCURSEL, 0, 0);
+    for ( size_t index = 0; index < MAX_ACCOUNT; ++index )
+    {
+        const auto username = g_username[index];
+        ::SendMessage(cbx_user, CB_ADDSTRING, index, (LPARAM)username);
+
+        if ( index == g_user_index )
+        {
+            ::SendMessage(cbx_user, CB_SETCURSEL, index, 0);
+        }
+    }
+};
+
+//---------------------------------------------------------------------------//
+
+void __stdcall ClearComboBox(HWND cbx_user)
+{
+    while ( ::SendMessage(cbx_user, CB_GETCOUNT, 0, 0) > 0 )
+    {
+        ::SendMessage(cbx_user, CB_DELETESTRING, 0, 0);
+    }
+}
+
+//---------------------------------------------------------------------------//
 
 HRESULT __stdcall OpenDialog(LPTSTR filename, size_t nMaxLength)
 {
@@ -170,7 +199,7 @@ END:
 // サブクラス プロシージャ
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall ComboBoxProc
+LRESULT CALLBACK ComboBoxProc
 (
     HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp,
     UINT_PTR uIdSubclass, DWORD_PTR dwRefData
@@ -204,7 +233,7 @@ LRESULT __stdcall ComboBoxProc
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall TextBoxProc
+LRESULT CALLBACK TextBoxProc
 (
     HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp,
     UINT_PTR uIdSubclass, DWORD_PTR dwRefData
@@ -214,18 +243,12 @@ LRESULT __stdcall TextBoxProc
     {
         // TODO: Ctrl+Enter でも改行が入力されてしまうのを 修正する
         Wnd::Refresh(hwnd);
-
-        const auto nVirtKey = (INT16)wp;
-        if
-        (
-            nVirtKey == VK_ESCAPE ||
-            nVirtKey == VK_RETURN && (0x80 & ::GetKeyState(VK_CONTROL)) ||
-            nVirtKey == VK_UP     && (0x80 & ::GetKeyState(VK_CONTROL)) ||
-            nVirtKey == VK_DOWN   && (0x80 & ::GetKeyState(VK_CONTROL))
-        )
-        {
-            return OnKeyDown((HWND)dwRefData, (INT16)wp, (INT16)lp);
-        }
+        OnKeyDown((HWND)dwRefData, (INT16)wp, (INT16)lp);
+    }
+    if ( uMsg == WM_DROPFILES )
+    {
+        ::MessageBox(nullptr, TEXT("未実装です"), TEXT(""), MB_OK);
+        return 0; // TODO: UploadPicture() の実装
     }
     else if ( uMsg == WM_PAINT )
     {
@@ -256,7 +279,7 @@ LRESULT __stdcall TextBoxProc
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall ButtonProc
+LRESULT CALLBACK ButtonProc
 (
     HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp,
     UINT_PTR uIdSubclass, DWORD_PTR dwRefData
@@ -264,36 +287,78 @@ LRESULT __stdcall ButtonProc
 {
     if ( uMsg == WM_LBUTTONUP )
     {
-        const auto hwnd_parent = (HWND)dwRefData;
-        OnCommand(hwnd_parent, (UINT16)uIdSubclass);
-
-        return ::DefSubclassProc(hwnd, uMsg, wp, lp);
+        OnCommand((HWND)dwRefData, (UINT16)uIdSubclass, 0);
     }
-    else if ( uMsg != WM_PAINT )
+    else if ( uMsg == WM_PAINT )
     {
-        return ::DefSubclassProc(hwnd, uMsg, wp, lp);
+        PAINTSTRUCT ps;
+        const auto hDC = ::BeginPaint(hwnd, &ps);
+        const auto prc = &ps.rcPaint;
+
+        HDC hMemDC = nullptr;
+        const auto pb = ::BeginBufferedPaint
+        (
+            hDC, prc, BPBF_TOPDOWNDIB, 0, &hMemDC
+        );
+        if ( pb )
+        {
+            ::SendMessage(hwnd, WM_PRINTCLIENT, (WPARAM)hMemDC, PRF_CLIENT);
+            ::BufferedPaintSetAlpha(pb, prc, 255);
+            ::EndBufferedPaint(pb, TRUE);
+        }
+
+        ::EndPaint(hwnd, &ps);
+
+        return 0;
     }
 
-    PAINTSTRUCT ps;
-    const auto hDC = ::BeginPaint(hwnd, &ps);
-    const auto prc = &ps.rcPaint;
-
-    HDC hMemDC = nullptr;
-    const auto pb = ::BeginBufferedPaint
-    (
-        hDC, prc, BPBF_TOPDOWNDIB, 0, &hMemDC
-    );
-    if ( pb )
-    {
-        ::SendMessage(hwnd, WM_PRINTCLIENT, (WPARAM)hMemDC, PRF_CLIENT);
-        ::BufferedPaintSetAlpha(pb, prc, 255);
-        ::EndBufferedPaint(pb, TRUE);
-    }
-
-    ::EndPaint(hwnd, &ps);
-
-    return 0;
+    return ::DefSubclassProc(hwnd, uMsg, wp, lp);
 };
+
+//---------------------------------------------------------------------------//
+// ダイアログ プロシージャ
+//---------------------------------------------------------------------------//
+
+BOOL CALLBACK UserListDlgProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
+{
+    switch( uMsg )
+    {
+        case WM_INITDIALOG:
+        {
+            for ( int index = 0; index < MAX_ACCOUNT; ++index )
+            {
+                const auto edit = ::GetDlgItem(hwnd, 2001 + index);
+                const auto username = g_username[index];
+                ::SetWindowText(edit, username);
+            }
+            break;
+        }
+        case WM_COMMAND:
+        {
+            if ( LOWORD(wp) == IDOK )
+            {
+                ::SendMessage(hwnd, WM_CLOSE, 0, 0);
+            }
+            break;
+        }
+        case WM_CLOSE:
+        {
+            for ( int index = 0; index < MAX_ACCOUNT; ++index )
+            {
+                const auto edit = ::GetDlgItem(hwnd, 2001 + index);
+                const auto username = g_username[index];
+                ::GetWindowText(edit, username, MAX_PATH);
+            }
+            ::EndDialog(hwnd, IDOK);
+            return TRUE;
+        }
+        default:
+        {
+            break;
+        }
+    }
+    return  FALSE;
+}
 
 //---------------------------------------------------------------------------//
 
