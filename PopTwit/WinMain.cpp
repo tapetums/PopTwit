@@ -94,7 +94,6 @@ INT32 WINAPI _tWinMain
     // COM の初期化
     ::CoInitialize(nullptr);
 
-
     // INI ファイルの読み込み
     TCHAR ininame[MAX_PATH];
     const auto length = ::GetModuleFileName(nullptr, ininame, MAX_PATH);
@@ -114,7 +113,7 @@ INT32 WINAPI _tWinMain
     Wnd::Register(APP_NAME, MainWindowProc, MAKEINTRESOURCE(100));
     const auto hwnd = Wnd::Create
     (
-        APP_NAME, APP_NAME, 0 //WS_BORDER | WS_THICKFRAME
+        APP_NAME, APP_NAME, 0
     );
     if ( hwnd == nullptr )
     {

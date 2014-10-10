@@ -9,6 +9,15 @@
 #pragma once
 
 //---------------------------------------------------------------------------//
+
+#ifdef _NODEFLIB
+#include <shlwapi.h>
+#pragma comment(lib, "shlwapi.lib")
+#undef StringCchPrintf
+#define StringCchPrintf wnsprintf
+#endif
+
+//---------------------------------------------------------------------------//
 // リソース管理まわり
 //---------------------------------------------------------------------------//
 
@@ -131,68 +140,6 @@ void __stdcall ClearComboBox(HWND cbx_user)
     {
         ::SendMessage(cbx_user, CB_DELETESTRING, 0, 0);
     }
-}
-
-//---------------------------------------------------------------------------//
-
-HRESULT __stdcall OpenDialog(LPTSTR filename, size_t nMaxLength)
-{
-    if ( filename == nullptr )
-    {
-        return E_POINTER;
-    }
-    filename[0] = '\0';
-
-    HRESULT hr = S_FALSE;
-
-    IFileOpenDialog* dialog = nullptr;
-    IShellItem*      item   = nullptr;
-
-    hr = ::CoCreateInstance
-    (
-        CLSID_FileOpenDialog, nullptr, CLSCTX_ALL,
-        IID_IFileOpenDialog, (void**)&dialog
-    );
-    if ( FAILED(hr) )
-    {
-        goto END;
-    }
-
-    hr = dialog->Show(nullptr);
-    if ( FAILED(hr) )
-    {
-        goto END;
-    }
-
-    hr = dialog->GetResult(&item);
-    if ( FAILED(hr) )
-    {
-        goto END;
-    }
-
-    LPWSTR path = nullptr;
-    hr = item->GetDisplayName(SIGDN_FILESYSPATH, &path);
-    if ( FAILED(hr) )
-    {
-        goto END;
-    }
-
-    ::StringCchCopy(filename, nMaxLength, path);
-    ::CoTaskMemFree(path);
-
-END:
-    if ( item )
-    {
-        item->Release();
-        item = nullptr;
-    }
-    if ( dialog )
-    {
-        dialog->Release();
-        dialog = nullptr;
-    }
-
-    return hr;
 }
 
 //---------------------------------------------------------------------------//

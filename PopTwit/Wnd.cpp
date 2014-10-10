@@ -109,7 +109,7 @@ ATOM __stdcall Register
         g_hIconSm,
     };
 
-    return ::RegisterClassExW(&wcex);
+    return ::RegisterClassEx(&wcex);
 }
 
 //---------------------------------------------------------------------------//

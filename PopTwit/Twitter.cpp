@@ -9,8 +9,12 @@
 #include <windows.h>
 #include <strsafe.h>
 
+#ifdef _NODEFLIB
 #include <shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
+#undef StringCchPrintf
+#define StringCchPrintf wnsprintf
+#endif
 
 #include "shlobj.h"
 
@@ -30,6 +34,16 @@
 #else
 #pragma comment(lib, "lib\\x86\\libcurl.lib")
 #pragma comment(lib, "lib\\x86\\twitcurl.lib")
+#endif
+
+//---------------------------------------------------------------------------//
+
+#if _MSC_VER <= 1800
+    #if defined(_NODEFLIB)
+        #define thread_local static
+    #else
+        #define thread_local static __declspec(thread)
+    #endif
 #endif
 
 //---------------------------------------------------------------------------//
@@ -53,16 +67,6 @@ struct DlgData
 
 //---------------------------------------------------------------------------//
 // ユーティリティ関数
-//---------------------------------------------------------------------------//
-
-#if _MSC_VER <= 1800
-    #if defined(_NODEFLIB)
-        #define thread_local static
-    #else
-        #define thread_local static __declspec(thread)
-    #endif
-#endif
-
 //---------------------------------------------------------------------------//
 
 typedef unsigned char char8_t; // MBCS と UTF-8 を区別するため
@@ -129,49 +133,6 @@ char8_t* toUTF8(const char16_t* str_u16)
     );
 
     return str_u8;
-}
-
-//---------------------------------------------------------------------------//
-
-// パスワード入力ダイアログのプロシージャ
-BOOL CALLBACK PassDlgProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
-{
-    static LPCTSTR username;
-    static LPTSTR  password = nullptr;
-    static HWND    txt_pass = nullptr;
-
-    switch( uMsg )
-    {
-        case WM_INITDIALOG:
-        {
-            username = ((DlgData*)lp)->username;
-            password = ((DlgData*)lp)->password;
-            txt_pass = ::GetDlgItem(hwnd, 1001);
-            ::SendMessage(hwnd, WM_SETTEXT, 0, (LPARAM)username);
-            ::SetFocus(txt_pass);
-            return FALSE;
-        }
-        case WM_COMMAND:
-        {
-            if ( LOWORD(wp) == IDOK )
-            {
-                ::GetWindowText(txt_pass, password, MAX_PATH);
-                ::EndDialog(hwnd, IDOK);
-                return TRUE;
-            }
-            else if ( LOWORD(wp) == IDCANCEL )
-            {
-                ::EndDialog(hwnd, IDCANCEL);
-                return TRUE;
-            }
-            break;
-        }
-        default:
-        {
-            break;
-        }
-    }
-    return  FALSE;
 }
 
 //---------------------------------------------------------------------------//
@@ -243,6 +204,51 @@ bool __stdcall WriteKeyToFile(LPCTSTR username, LPCTSTR filename, const char8_t*
 }
 
 //---------------------------------------------------------------------------//
+// ダイアログ プロシージャ
+//---------------------------------------------------------------------------//
+
+// パスワード入力ダイアログのプロシージャ
+BOOL CALLBACK PassDlgProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
+{
+    thread_local LPCTSTR username;
+    thread_local LPTSTR  password = nullptr;
+    thread_local HWND    txt_pass = nullptr;
+
+    switch( uMsg )
+    {
+        case WM_INITDIALOG:
+        {
+            username = ((DlgData*)lp)->username;
+            password = ((DlgData*)lp)->password;
+            txt_pass = ::GetDlgItem(hwnd, 1001);
+            ::SendMessage(hwnd, WM_SETTEXT, 0, (LPARAM)username);
+            ::SetFocus(txt_pass);
+            return FALSE;
+        }
+        case WM_COMMAND:
+        {
+            if ( LOWORD(wp) == IDOK )
+            {
+                ::GetWindowText(txt_pass, password, MAX_PATH);
+                ::EndDialog(hwnd, IDOK);
+                return TRUE;
+            }
+            else if ( LOWORD(wp) == IDCANCEL )
+            {
+                ::EndDialog(hwnd, IDCANCEL);
+                return TRUE;
+            }
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+    return  FALSE;
+}
+
+//---------------------------------------------------------------------------//
 // Twitter 関連の関数
 //---------------------------------------------------------------------------//
 
@@ -255,12 +261,7 @@ bool __stdcall Tweet
 
     if ( g_ask_each_tweet )
     {
-    #ifdef _NODEFLIB
-        ::wnsprintf(buf, MAX_PATH, TEXT("@%s から送信しますか？"), username);
-    #else
         ::StringCchPrintf(buf, MAX_PATH, TEXT("@%s から送信しますか？"), username);
-    #endif
-
         const auto ret = ::MessageBox
         (
             hwnd, buf, APP_NAME, MB_YESNO | MB_ICONEXCLAMATION | MB_DEFBUTTON1
@@ -307,7 +308,7 @@ bool __stdcall Tweet
     #ifdef _UNICODE
         std::string userName( (char*)toUTF8((char16_t*)username) );
     #else
-        std::string userName( (char*)username) );
+        std::string userName( (char*)toUTF8(username) );
     #endif
         std::string passWord;
 
@@ -328,7 +329,7 @@ bool __stdcall Tweet
         #ifdef _UNICODE
             passWord = (char*)toUTF8((char16_t*)buf);
         #else
-            passWord = (char*)toUTF8(pass);
+            passWord = (char*)toUTF8(buf);
         #endif
             console_outA(passWord.c_str());
 
@@ -385,9 +386,9 @@ bool __stdcall Tweet
 #ifdef _UNICODE
     std::string msgStr( (char*)toUTF8((char16_t*)message) );
 #else
-    std::string msgStr( (char*)message) );
+    std::string msgStr( (char*)toUTF8(message) );
 #endif
-    replyMsg = "";
+    replyMsg = (char*)"";
 
     if ( twitterObj.statusUpdate( msgStr ) )
     {
@@ -415,12 +416,7 @@ bool __stdcall UploadPicture
     LPCTSTR filename, LPTSTR uploadedURL, int nMaxLength
 )
 {
-#ifdef _NODEFLIB
-    ::wnsprintf(uploadedURL, nMaxLength, TEXT("%s"), filename);
-#else
     ::StringCchPrintf(uploadedURL, nMaxLength, TEXT("%s"), filename);
-#endif
-
     return false;
 }
 
@@ -431,12 +427,7 @@ bool __stdcall ShortenURL
     LPCTSTR URL, LPTSTR shortenedURL, int nMaxLength
 )
 {
-#ifdef _NODEFLIB
-    ::wnsprintf(shortenedURL, nMaxLength, TEXT("%s"), URL);
-#else
     ::StringCchPrintf(shortenedURL, nMaxLength, TEXT("%s"), URL);
-#endif
-
     return false;
 }
 

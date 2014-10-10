@@ -9,8 +9,12 @@
 #include <windows.h>
 #include <strsafe.h>
 
+#ifdef _NODEFLIB
 #include <shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
+#undef StringCchPrintf
+#define StringCchPrintf wnsprintf
+#endif
 
 #include "IniFile.h"
 
@@ -34,7 +38,7 @@ TCHAR  g_msgstub[MAX_MESSAGE_LEN];
 // INI ファイルの読み込み
 bool __stdcall LoadIniFile(LPCTSTR ininame)
 {
-    const auto enabled = (bool)::GetPrivateProfileIntW
+    const auto enabled = (bool)::GetPrivateProfileInt
     (
         TEXT("settings"), TEXT("enabled"), (INT)true, ininame
     );
@@ -43,12 +47,12 @@ bool __stdcall LoadIniFile(LPCTSTR ininame)
         return false;
     }
 
-    g_ask_each_tweet = (bool)::GetPrivateProfileIntW
+    g_ask_each_tweet = (bool)::GetPrivateProfileInt
     (
         TEXT("settings"), TEXT("ask_each_tweet"), (INT)true, ininame
     );
 
-    g_user_index = ::GetPrivateProfileIntW
+    g_user_index = ::GetPrivateProfileInt
     (
         TEXT("user"), TEXT("index"), 0, ininame
     );
@@ -58,15 +62,11 @@ bool __stdcall LoadIniFile(LPCTSTR ininame)
 
     for ( size_t index = 0; index < MAX_ACCOUNT; ++index )
     {
-#ifdef _NODEFLIB
-        ::wnsprintf(buf, BUF_SIZE, TEXT("%02X"), index);
-#else
         ::StringCchPrintf(buf, BUF_SIZE, TEXT("%02X"), index);
-#endif
         ::GetPrivateProfileString
         (
             TEXT("user"), buf,
-            TEXT("-"), g_username[index], MAX_PATH, ininame
+            TEXT(""), g_username[index], MAX_PATH, ininame
         );
     }
 
@@ -81,31 +81,19 @@ bool __stdcall SaveIniFile(LPCTSTR ininame)
     const size_t BUF_SIZE = 64;
     TCHAR buf[BUF_SIZE];
 
-#ifdef _NODEFLIB
-    ::wnsprintf(buf, BUF_SIZE, TEXT("%d"), true);
-#else
     ::StringCchPrintf(buf, BUF_SIZE, TEXT("%d"), true);
-#endif
     ::WritePrivateProfileString
     (
         TEXT("settings"), TEXT("enabled"), buf, ininame
     );
 
-#ifdef _NODEFLIB
-    ::wnsprintf(buf, BUF_SIZE, TEXT("%d"), g_ask_each_tweet);
-#else
     ::StringCchPrintf(buf, BUF_SIZE, TEXT("%d"), g_ask_each_tweet);
-#endif
     ::WritePrivateProfileString
     (
         TEXT("settings"), TEXT("ask_each_tweet"), buf, ininame
     );
 
-#ifdef _NODEFLIB
-    ::wnsprintf(buf, BUF_SIZE, TEXT("%d"), g_user_index);
-#else
     ::StringCchPrintf(buf, BUF_SIZE, TEXT("%d"), g_user_index);
-#endif
     ::WritePrivateProfileString
     (
         TEXT("user"), TEXT("index"), buf, ininame
@@ -113,11 +101,7 @@ bool __stdcall SaveIniFile(LPCTSTR ininame)
 
     for ( size_t index = 0; index < MAX_ACCOUNT; ++index )
     {
-#ifdef _NODEFLIB
-        ::wnsprintf(buf, BUF_SIZE, TEXT("%02X"), index);
-#else
         ::StringCchPrintf(buf, BUF_SIZE, TEXT("%02X"), index);
-#endif
         ::WritePrivateProfileString
         (
             TEXT("user"), buf, g_username[index], ininame

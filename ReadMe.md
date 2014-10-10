@@ -8,17 +8,19 @@ Windows 7 64-bit
 Microsoft Visual C++ 2013 SP1
 
 
+##動作環境
+　Windows Vista/7/8/8.1 32/64-bit  
+　Microsoft Visual C++ 2008 および 2013 ランタイムが必要です。
+
+
 ##依存関係
-- OpenSSL
+- [OpenSSL](http://slproweb.com/products/Win32OpenSSL.html)
  - libeay32.dll
  - ssleay32.dll
-- libcurl
-  - libcurl.dll
+- [libssh2](http://www.libssh2.org/download/)
   - libssh2.dll
-
-
-##動作環境
-　Windows Vista/7/8/8.1 32/64-bit
+- [cURL](http://curl.haxx.se/download.html)
+  - libcurl.dll
 
 
 ##使い方
