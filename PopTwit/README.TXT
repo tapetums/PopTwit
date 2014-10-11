@@ -15,13 +15,13 @@ Windows XP では起動しません。
 Microsoft Visual C++ 2008 および 2013 ランタイムが必要です。
 また、以下のライブラリを使用しています。
 
-<OpenSSL>
+・OpenSSL
 http://slproweb.com/products/Win32OpenSSL.html
 
-<libssh2>
+・libssh2
 http://www.libssh2.org/download/
 
-<cURL>
+・cURL
 http://curl.haxx.se/download.html
 
 
