@@ -26,8 +26,18 @@ Microsoft Visual C++ 2013 SP1
 ##使い方
 1. 上記 4 つの dll ファイルを入手して、exe ファイルと同じ階層のフォルダに配置します。
 2. ウィンドウ右上にあるボタンをクリックするか、Ctrl+U でユーザーリスト編集画面を開き、自分の Twitter のユーザー名を入力します。
-3. 初回投稿時にパスワードを入力します。以後は取得したアクセストークンだけを使って書き込めるようになります。アクセストークンは %LOCALAPPDATA%PopTwit にあります。( Win7 であれば C:\Users\アカウント名\AppData\Local\PopTwit\ )
+3. 初回投稿時にパスワードを入力します。以後は取得したアクセストークンだけを使って書き込めるようになります。アクセストークンは %LOCALAPPDATA%\PopTwit にあります。( Win7 であれば C:\Users\アカウント名\AppData\Local\PopTwit\ )
 4. Ctrl+↑ / Ctrl+↓ でユーザーを切り替えます。最大 8 アカウントまでに対応しています。
+
+
+##ソースコードをご利用の方へ
+ConsumerKey.h ファイルはレポジトリに含まれていません。  
+ご自身でファイルをご用意いただき、コンシューマーキーを定義してください。  
+例：
+'''c
+#define CONSUMER_KEY        "XXXXXXXXXXXXXXXXXXXXXXXXX"
+#define CONSUMER_KEY_SECRET "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+'''
 
 
 ##ライセンス
