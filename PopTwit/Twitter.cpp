@@ -137,8 +137,11 @@ char8_t* toUTF8(const wchar_t* str_u16)
 
 //---------------------------------------------------------------------------//
 
-char* __stdcall ReadKeyFromFile(LPCTSTR username, LPCTSTR filename)
+char8_t* __stdcall ReadKeyFromFile(LPCTSTR username, LPCTSTR filename)
 {
+    thread_local char8_t key[MAX_PATH];
+    memset(key, 0, MAX_PATH * sizeof(char8_t));
+
     TCHAR path[MAX_PATH];
     ::SHGetFolderPath(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, path);
 
@@ -157,22 +160,25 @@ char* __stdcall ReadKeyFromFile(LPCTSTR username, LPCTSTR filename)
     );
     if ( hFile == nullptr || hFile == INVALID_HANDLE_VALUE )
     {
-        return (char*)"";
+        console_out(TEXT("Not found"));
+        return (char8_t*)"";
     }
 
     DWORD dw;
-    char8_t key[MAX_PATH] = { };
     ::ReadFile(hFile, key, MAX_PATH, &dw, nullptr);
 
     ::CloseHandle(hFile);
+    console_outA(("%s"), key);
 
-    return (dw > 0) ? (char*)key : (char*)"";
+    return (dw > 0) ? (char8_t*)key : (char8_t*)"";
 }
 
 //---------------------------------------------------------------------------//
 
 bool __stdcall WriteKeyAsFile(LPCTSTR username, LPCTSTR filename, const char8_t* key)
 {
+    console_outA(("%s"), key);
+
     TCHAR path[MAX_PATH];
     ::SHGetFolderPath(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, path);
 
@@ -180,9 +186,20 @@ bool __stdcall WriteKeyAsFile(LPCTSTR username, LPCTSTR filename, const char8_t*
     ::StringCchPrintf
     (
         buf, MAX_PATH,
+        TEXT("%s\\%s"), path, APP_NAME
+    );
+    const auto ret = ::CreateDirectory(buf, nullptr);
+    if ( ret == 0 )
+    {
+        console_out(TEXT("Created AppData directory: %s"), buf);
+    }
+
+    ::StringCchPrintf
+    (
+        buf, MAX_PATH,
         TEXT("%s\\%s\\%s_%s"), path, APP_NAME, username, filename
     );
-    console_out(TEXT("WriteKeyToFile(): %s"), buf);
+    console_out(TEXT("WriteKeyAsFile(): %s"), buf);
 
     const auto hFile = ::CreateFile
     (
@@ -191,6 +208,7 @@ bool __stdcall WriteKeyAsFile(LPCTSTR username, LPCTSTR filename, const char8_t*
     );
     if ( hFile == nullptr || hFile == INVALID_HANDLE_VALUE )
     {
+        console_out(TEXT("Could not open file to write"));
         return false;
     }
 
@@ -304,11 +322,11 @@ bool __stdcall Tweet
     // Step 1: Check if we alredy have OAuth access token from a previous run
     std::string myOAuthAccessTokenKey
     (
-        ReadKeyFromFile(username, TEXT("token_key"))
+        (char*)ReadKeyFromFile(username, TEXT("token_key"))
     );
     std::string myOAuthAccessTokenSecret
     (
-        ReadKeyFromFile(username, TEXT("token_secret"))
+        (char*)ReadKeyFromFile(username, TEXT("token_secret"))
     );
 
     if ( myOAuthAccessTokenKey.size() && myOAuthAccessTokenSecret.size() )
@@ -385,10 +403,6 @@ bool __stdcall Tweet
             {
                 twitterObj.getLastCurlError( replyMsg );
                 console_outA("accountVerifyCredGet error: %s", replyMsg.c_str());
-
-                // Delete keys which are indicated to be invalid
-                DeleteKeyFile(username, TEXT("token_key"));
-                DeleteKeyFile(username, TEXT("token_secret"));
             }
 
         } while ( true );
@@ -413,6 +427,10 @@ bool __stdcall Tweet
         twitterObj.getLastCurlError( replyMsg );
         console_outA("statusUpdate error: %s", replyMsg.c_str());
     }
+
+    // Delete keys which are indicated to be invalid
+    DeleteKeyFile(username, TEXT("token_key"));
+    DeleteKeyFile(username, TEXT("token_secret"));
 
     return false;
 }

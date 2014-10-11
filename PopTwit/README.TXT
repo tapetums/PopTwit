@@ -15,13 +15,13 @@ Windows XP では起動しません。
 Microsoft Visual C++ 2008 および 2013 ランタイムが必要です。
 また、以下のライブラリを使用しています。
 
-<OpenSSL>
+・OpenSSL
 http://slproweb.com/products/Win32OpenSSL.html
 
-<libssh2>
+・libssh2
 http://www.libssh2.org/download/
 
-<cURL>
+・cURL
 http://curl.haxx.se/download.html
 
 
@@ -40,7 +40,7 @@ exe ファイルと同じ階層のフォルダに配置してください。
 
 
 【アンインストール】
- %LOCALAPPDATA%PopTwit に一時ファイルを保存しています。
+ %LOCALAPPDATA%\PopTwit に一時ファイルを保存しています。
  ( Windows 7 であれば C:\Users\アカウント名\AppData\Local\PopTwit\ )
 お手数ですが手動での削除をお願いします。
 レジストリは使用していません。
@@ -69,7 +69,12 @@ http://www.kmonos.net/nysl/
 
 
 【更新履歴】
-2014.10.10 v0.1.0.0
+2014.10.12 v0.1.1.0
+・%LOCALAPPDATA%\PopTwit が存在しない場合認証情報を保存できないバグを修正
+・32ビット版を ANSI エンコードに変更
+・二重起動を防止するようにした
+
+2014.10.10 v0.1.1.0
 ・初版作成
 
 
