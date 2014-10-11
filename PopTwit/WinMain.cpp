@@ -88,6 +88,20 @@ INT32 WINAPI _tWinMain
     }
     #endif
 
+    // 二重起動の防止
+    const auto hMutex = ::CreateMutex(nullptr, FALSE, APP_NAME);
+    if ( nullptr == hMutex )
+    {
+        //console_out(TEXT("%s: CreateMutex() failed"), APP_NAME);
+        return -4;
+    }
+    else if ( ::GetLastError() == ERROR_ALREADY_EXISTS )
+    {
+        //console_out(TEXT("%s is already running"), APP_NAME);
+        ::CloseHandle(hMutex);
+        return -3;
+    }
+
     // インスタンスハンドルをグローバル変数に保存
     g_hInst = hInstance;
 
@@ -136,6 +150,11 @@ INT32 WINAPI _tWinMain
 
     // COM の終了処理
     ::CoUninitialize();
+
+    if ( hMutex )
+    {
+        ::CloseHandle(hMutex);
+    }
 
     return static_cast<INT32>(msg.wParam);
 }
