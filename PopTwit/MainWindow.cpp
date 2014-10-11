@@ -186,7 +186,11 @@ LRESULT __stdcall OnCreate(HWND hwnd)
 
     btn_send = ::CreateWindowEx
     (
+#if defined _UNICODE || UNICODE
         0, TEXT("BUTTON"), TEXT("📤 Tweet"),
+#else
+        0, TEXT("BUTTON"), TEXT("Tweet"),
+#endif
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_CENTER | BS_VCENTER,
         0, 0, 48, 24,
         hwnd, nullptr, g_hInst, nullptr
@@ -199,7 +203,11 @@ LRESULT __stdcall OnCreate(HWND hwnd)
 
     btn_close = ::CreateWindowEx
     (
+#if defined _UNICODE || UNICODE
         0, TEXT("BUTTON"), TEXT("⛝ 閉じる"),
+#else
+        0, TEXT("BUTTON"), TEXT("閉じる"),
+#endif
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_CENTER | BS_VCENTER,
         0, 0, 48, 24,
         hwnd, nullptr, g_hInst, nullptr
@@ -212,7 +220,11 @@ LRESULT __stdcall OnCreate(HWND hwnd)
 
     btn_shorten = ::CreateWindowEx
     (
+#if defined _UNICODE || UNICODE
         0, TEXT("BUTTON"), TEXT("🔗"),
+#else
+        0, TEXT("BUTTON"), TEXT("s"),
+#endif
         WS_CHILD | WS_VISIBLE | WS_DISABLED |
         BS_PUSHBUTTON | BS_CENTER | BS_VCENTER,
         0, 0, 24, 24,
@@ -226,7 +238,11 @@ LRESULT __stdcall OnCreate(HWND hwnd)
 
     btn_pic = ::CreateWindowEx
     (
+#if defined _UNICODE || UNICODE
         0, TEXT("BUTTON"), TEXT("📷"),
+#else
+        0, TEXT("BUTTON"), TEXT("P"),
+#endif
         WS_CHILD | WS_VISIBLE | WS_DISABLED |
         BS_PUSHBUTTON | BS_CENTER | BS_VCENTER,
         0, 0, 24, 24,
@@ -240,7 +256,11 @@ LRESULT __stdcall OnCreate(HWND hwnd)
 
     btn_user = ::CreateWindowEx
     (
+#if defined _UNICODE || UNICODE
         0, TEXT("BUTTON"), TEXT("👤"),
+#else
+        0, TEXT("BUTTON"), TEXT("U"),
+#endif
         WS_CHILD | WS_VISIBLE |
         BS_PUSHBUTTON | BS_CENTER | BS_VCENTER,
         0, 0, 24, 24,
@@ -446,6 +466,7 @@ LRESULT __stdcall OnCommand(HWND hwnd, UINT16 wId, UINT16 nCode)
             // エディットボックスからメッセージを取得
             TCHAR message[MAX_MESSAGE_LEN];
             ::GetWindowText(txt_tweet, message, MAX_MESSAGE_LEN);
+            message[MAX_MESSAGE_LEN - 1] = '\0';
             if ( message[0] == '\0' )
             {
                 // 空のメッセージは送信しない
