@@ -78,7 +78,15 @@ BOOL CALLBACK PassDlgProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
             txt_name = ::GetDlgItem(hwnd, 1002);
             txt_pass = ::GetDlgItem(hwnd, 1004);
             ::SendMessage(txt_name, WM_SETTEXT, 0, (LPARAM)username);
-            ::SetFocus(txt_pass);
+
+            if ( username[0] == '\0' )
+            {
+                ::SetFocus(txt_name);
+            }
+            else
+            {
+                ::SetFocus(txt_pass);
+            }
             return FALSE;
         }
         case WM_COMMAND:
@@ -147,13 +155,14 @@ bool __stdcall ConnectToTwitter
 
     TCHAR buf[MAX_PATH];
 
-    std::string userName( (char*)toUTF8(username) );
+    std::string userName;
     std::string passWord;
     std::string replyMsg;
 
     do
     {
         // Show dialog box for password
+        buf[0] = '\0';
         DlgData data = { (LPTSTR)username, buf };
         const auto ret = ::DialogBoxParam
         (
@@ -164,6 +173,7 @@ bool __stdcall ConnectToTwitter
             console_out(TEXT("%s: Tweet canceled"), APP_NAME);
             return false;
         }
+        userName = (char*)toUTF8(username);
         passWord = (char*)toUTF8(buf);
 
         // Retry to get access token key and secret
