@@ -28,10 +28,10 @@ Microsoft Visual C++ 2013 Update 3
 ConsumerKey.h ファイルはレポジトリに含まれていません。  
 ご自身でファイルをご用意いただき、コンシューマーキーを定義してください。  
 例：
-'''c
+```c
 #define CONSUMER_KEY        "XXXXXXXXXXXXXXXXXXXXXXXXX"
 #define CONSUMER_KEY_SECRET "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-'''
+```
 
 
 ##ライセンス
