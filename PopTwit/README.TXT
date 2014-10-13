@@ -21,7 +21,7 @@ http://slproweb.com/products/Win32OpenSSL.html
 ・libssh2
 http://www.libssh2.org/download/
 
-・cURL
+・libcurl
 http://curl.haxx.se/download.html
 
 
