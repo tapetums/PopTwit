@@ -1,0 +1,2 @@
+﻿#define CONSUMER_KEY        "CMzHWLZedFJK9VZyXBRQTOQ2f"
+#define CONSUMER_KEY_SECRET "pvokCxkbzOcRXXyqE90p4BquI6uli4y620EPpoFYJGfMP5RhrK"

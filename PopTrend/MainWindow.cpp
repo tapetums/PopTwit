@@ -11,30 +11,26 @@
 #include <windows.h>
 #include <strsafe.h>
 
+#ifdef _NODEFLIB
+#include <shlwapi.h>
+#pragma comment(lib, "shlwapi.lib")
+#undef StringCchPrintf
+#define StringCchPrintf wnsprintf
+#endif
+
+#include <commctrl.h>
+#pragma comment(lib, "comctl32.lib")
+
 #include <dwmapi.h>
 #pragma comment(lib, "dwmapi.lib")
 
-#include "curl/curl.h"
+#include "../Font.hpp"
 #include "ConsoleOut.h"
+#include "IniFile.h"
 #include "Wnd.hpp"
+#include "Twitter.h"
 #include "MainWindow.h"
-
-#ifdef _WIN64
-#pragma comment(lib, "lib\\x64\\libcurl.lib")
-#else
-#pragma comment(lib, "lib\\x86\\libcurl.lib")
-#endif
-
-//---------------------------------------------------------------------------//
-// MBCS と UTF-8 を区別するための文字列型
-//---------------------------------------------------------------------------//
-
-typedef unsigned char char8_t;
-
-namespace std
-{
-    typedef std::basic_string<char8_t> u8string;
-}
+#include "MainWindow.Utl.hpp"
 
 //---------------------------------------------------------------------------//
 // グローバル変数
@@ -47,11 +43,23 @@ extern HINSTANCE g_hInst;
 // グローバル変数の実体宣言
 //---------------------------------------------------------------------------//
 
+// ビジュアルスタイル テーマ
 HTHEME g_hTheme = nullptr;
-HWND   btn = nullptr;
 
-CURL* curl = nullptr;
-std::u8string chunk;
+// フォント情報
+LPCTSTR g_font_label  = TEXT("Meiryo");;
+LPCTSTR g_font_symbol = TEXT("Segoe UI Symbol");;
+HFONT font_label, font_info, font_symbol;
+
+// 子コントロールのハンドル
+HWND btn_update;
+HWND label_info;
+HWND label_trend[10];
+
+// 子コントロールと関連付ける文字列のバッファ
+TCHAR info_txt[MAX_PATH];
+TCHAR trend_text[10][MAX_PATH];
+TCHAR trend_link[10][MAX_PATH];
 
 //---------------------------------------------------------------------------//
 // ウィンドウプロシージャ
@@ -80,13 +88,13 @@ LRESULT __stdcall MainWindowProc
         {
             return OnEraseBkGnd((HDC)wp);
         }
-        case WM_NCHITTEST:
-        {
-            return HTCAPTION;
-        }
         case WM_COMMAND:
         {
             return OnCommand(hwnd, LOWORD(wp), HIWORD(wp));
+        }
+        case WM_TIMER:
+        {
+            return OnCommand(hwnd, CTRL_BTN_UPDATE, 0);
         }
         case WM_DWMCOMPOSITIONCHANGED:
         {
@@ -106,61 +114,79 @@ LRESULT __stdcall MainWindowProc
 }
 
 //---------------------------------------------------------------------------//
-// コールバック関数
-//---------------------------------------------------------------------------//
-
-size_t write_data
-(
-    char8_t* str, size_t size, size_t nmemb, std::u8string* stream
-)
-{
-    console_out(TEXT("write_data("));
-
-    const auto cared_bytes = size * nmemb;
-    if ( cared_bytes == 0 )
-    {
-        return 0;
-    }
-    console_out(TEXT("write_data(): %d bytes"), cared_bytes);
-
-    stream->append(str, cared_bytes);
-
-    return cared_bytes;
-}
-
-//---------------------------------------------------------------------------//
 // イベントハンドラ
 //---------------------------------------------------------------------------//
 
 LRESULT __stdcall OnCreate(HWND hwnd)
 {
-    btn = ::CreateWindowEx
+    // ダブルバッファリングを開始
+    ::BufferedPaintInit();
+
+    // フォントを生成
+    font_label  = MakeFont(20, g_font_label);
+    font_info   = MakeFont(18, g_font_label);
+    font_symbol = MakeFont(20, g_font_symbol);
+
+    // 子コントロールを生成
+    btn_update = ::CreateWindowEx
     (
-        0, TEXT("BUTTON"), TEXT("OK"),
+#if defined _UNICODE || UNICODE
+        0, TEXT("BUTTON"), TEXT("📡"),
+#else
+        0, TEXT("BUTTON"), TEXT("更新"),
+#endif
         WS_CHILD | WS_VISIBLE |
         BS_PUSHBUTTON | BS_CENTER | BS_VCENTER,
         0, 0, 24, 24,
-        hwnd, (HMENU)1001, g_hInst, nullptr
+        hwnd, (HMENU)CTRL_BTN_UPDATE, g_hInst, nullptr
+    );
+    ::SendMessage(btn_update, WM_SETFONT, (WPARAM)font_symbol, (LPARAM)FALSE);
+    ::SetWindowSubclass
+    (
+        btn_update, (SUBCLASSPROC)ButtonProc, CTRL_BTN_UPDATE, (DWORD_PTR)hwnd
     );
 
-    if ( curl == nullptr )
-    {
-        curl = curl_easy_init();
-        console_out(TEXT("curl_easy_init(): %s"), curl ? TEXT("OK") : TEXT("FAIL"));
-        if ( curl == nullptr )
-        {
-            return 0;
-        }
-    }
+    label_info = ::CreateWindowEx
+    (
+        0, TEXT("STATIC"), TEXT(""),
+        WS_CHILD | WS_VISIBLE |
+        SS_LEFT | SS_NOTIFY,
+        0, 0, 24, 24,
+        hwnd, (HMENU)CTRL_LABAEL_INFO, g_hInst, nullptr
+    );
+    ::SendMessage(label_info, WM_SETFONT, (WPARAM)font_info, (LPARAM)FALSE);
+    ::SetWindowText(label_info, TEXT("なう"));
+    ::SetWindowSubclass
+    (
+        label_info, (SUBCLASSPROC)LabelProc, CTRL_LABAEL_INFO, (DWORD_PTR)hwnd
+    );
 
-    curl_easy_setopt(curl, CURLOPT_URL, "https://api.twitter.com/1.1/trends/place.json");
-    //curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
-    //curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &chunk);
+    for ( size_t index = 0; index < 10; ++index )
+    {
+        trend_link[index][0] = '\0';
+
+        label_trend[index] = ::CreateWindowEx
+        (
+            0, TEXT("STATIC"), TEXT(""),
+            WS_CHILD | WS_VISIBLE |
+            SS_CENTER | SS_NOTIFY,
+            0, 0, 24, 24,
+            hwnd, (HMENU)(CTRL_LABEL_TREND + index), g_hInst, (LPVOID)trend_link[index]
+        );
+        ::SendMessage(label_trend[index], WM_SETFONT, (WPARAM)font_label, (LPARAM)FALSE);
+        ::SetWindowText(label_trend[index], TEXT("-"));
+        ::SetWindowSubclass
+        (
+            label_trend[index], (SUBCLASSPROC)LabelProc,
+            CTRL_LABEL_TREND + index, (DWORD_PTR)hwnd
+        );
+    }
 
     // Aero Glass 効果をオンに
     OnThemeChanged(hwnd);
+
+    // 情報取得
+    OnCommand(hwnd, CTRL_BTN_UPDATE, 0);
 
     return 0;
 }
@@ -169,12 +195,16 @@ LRESULT __stdcall OnCreate(HWND hwnd)
 
 LRESULT __stdcall OnDestroy(HWND hwnd)
 {
-    if ( curl )
-    {
-        console_out(TEXT("curl_easy_cleanup()"));
-        curl_easy_cleanup(curl);
-        curl = nullptr;
-    }
+    // タイマーを破棄
+    ::KillTimer(hwnd, 2000);
+
+    // フォントを破棄
+    DeleteFont(font_label);
+    DeleteFont(font_info);
+    DeleteFont(font_symbol);
+
+    // ダブルバッファリングを終了
+    ::BufferedPaintUnInit();
 
     // アプリケーションを終了
     ::PostQuitMessage(0);
@@ -186,7 +216,14 @@ LRESULT __stdcall OnDestroy(HWND hwnd)
 
 LRESULT __stdcall OnSize(HWND hwnd, INT32 w, INT32 h)
 {
-    Wnd::Bounds(btn, (w - 48) /2, h - 32, 48, 24);
+    Wnd::Bounds(btn_update, w - 48, h - 25, 48, 24);
+    Wnd::Bounds(label_info, 0, h - 25, w - 52, 24);
+
+    for ( INT32 index = 0; index < 10; ++index )
+    {
+        Wnd::Bounds(label_trend[index], 0, index * 27, w, 27);
+    }
+
     return 0;
 }
 
@@ -217,43 +254,43 @@ LRESULT __stdcall OnCommand(HWND hwnd, UINT16 wId, UINT16 nCode)
 {
     switch ( wId )
     {
-        case 1001:
+        case CTRL_BTN_UPDATE:
         {
-            if ( curl == nullptr )
-            {
-                break;
-            }
-
-            const auto ret = curl_easy_perform(curl);
-            console_out(TEXT("ret = %d"), ret);
-            if ( ret != CURLE_OK )
-            {
-                console_out(TEXT("curl_easy_perform() failed"));
-                break;
-            }
-
-            const auto hFile = ::CreateFile
+            // トレンドを取得
+            const auto reply = GetTrends
             (
-                TEXT("R:\\afo.json"), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr,
-                OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr
+                hwnd, g_username, g_woeid, g_no_hashtags
             );
-            if ( hFile == nullptr || hFile == INVALID_HANDLE_VALUE )
+            if ( reply.empty() )
             {
-                console_out(TEXT("Not found"));
+                // タイマーを破棄
+                ::KillTimer(hwnd, 2000);
                 break;
             }
 
-            DWORD dw;
-            const auto len = chunk.length();
-            ::WriteFile(hFile, chunk.c_str(), len, &dw, nullptr);
+            // 文字列を取り出してグローバル変数に格納
+            if ( ! ParseJson(reply) )
+            {
+                break;
+            }
+            // タイマーを設定
+            if ( g_interval > 0 )
+            {
+                ::SetTimer(hwnd, 2000, g_interval * 60 * 1000, nullptr);
+            }
 
-            ::CloseHandle(hFile);
-            console_out(TEXT("Wrote %d bytes"), dw);
+            // 描画を更新
+            Wnd::Refresh(hwnd);
 
             break;
         }
         default:
         {
+            if ( CTRL_LABEL_TREND <= wId && wId < CTRL_LABEL_TREND + 10 )
+            {
+                // ウェブページを開く
+                JumpToTrendPage(wId - CTRL_LABEL_TREND);
+            }
             break;
         }
     }
@@ -298,4 +335,4 @@ LRESULT __stdcall OnThemeChanged(HWND hwnd)
 
 //---------------------------------------------------------------------------//
 
-// MainWindow.hpp
+// MainWindow.cpp

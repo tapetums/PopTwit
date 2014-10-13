@@ -6,21 +6,22 @@
 //
 //---------------------------------------------------------------------------//
 
-#include <windows.h>
-#include <tchar.h>
-
-#include "ConsoleOut.h"
-#include "Wnd.hpp"
-#include "MainWindow.h"
-
-//---------------------------------------------------------------------------//
-
 // メモリリーク検出
 #if defined(_DEBUG) || (DEBUG)
     #define _CRTDBG_MAP_ALLOC
     #include <crtdbg.h>
     #define new new(_NORMAL_BLOCK, __FILE__, __LINE__)
 #endif
+
+//---------------------------------------------------------------------------//
+
+#include <windows.h>
+#include <tchar.h>
+
+#include "curl/curl.h"
+#include "IniFile.h"
+#include "Wnd.hpp"
+#include "MainWindow.h"
 
 //---------------------------------------------------------------------------//
 // グローバル変数の実体定義
@@ -48,24 +49,26 @@ INT32 WINAPI _tWinMain
     }
     #endif
 
-    // 二重起動の防止
-    const auto hMutex = ::CreateMutex(nullptr, FALSE, APP_NAME);
-    if ( nullptr == hMutex )
-    {
-        //console_out(TEXT("%s: CreateMutex() failed"), APP_NAME);
-        return -4;
-    }
-    else if ( ::GetLastError() == ERROR_ALREADY_EXISTS )
-    {
-        //console_out(TEXT("%s is already running"), APP_NAME);
-        ::CloseHandle(hMutex);
-        return -3;
-    }
-
     // インスタンスハンドルをグローバル変数に保存
     g_hInst = hInstance;
 
-    console_out(TEXT("----------------------------------------"));
+    // libcurl の初期化
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+
+    // INI ファイルの読み込み
+    TCHAR ininame[MAX_PATH];
+    const auto length = ::GetModuleFileName(nullptr, ininame, MAX_PATH);
+    if ( length > 3 )
+    {
+        ininame[length - 3] = 'i';
+        ininame[length - 2] = 'n';
+        ininame[length - 1] = 'i';
+    }
+    const auto enabled = LoadIniFile(ininame);
+    if ( !enabled )
+    {
+        return -2;
+    }
 
     // ウィンドウの生成
     Wnd::Register(APP_NAME, MainWindowProc, MAKEINTRESOURCE(100));
@@ -89,12 +92,11 @@ INT32 WINAPI _tWinMain
         ::DispatchMessage(&msg);
     }
 
-    if ( hMutex )
-    {
-        ::CloseHandle(hMutex);
-    }
+    // libcurl の終了処理
+    curl_global_cleanup();
 
-    console_out(TEXT("----------------------------------------\r\n"));
+    // INI ファイルの書き出し
+    SaveIniFile(ininame);
 
     return static_cast<INT32>(msg.wParam);
 }

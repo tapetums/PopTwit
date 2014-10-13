@@ -150,14 +150,22 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\KeyFile.cpp" />
+    <ClCompile Include="..\Transcode.cpp" />
     <ClCompile Include="ConsoleOut.cpp" />
+    <ClCompile Include="IniFile.cpp" />
     <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="Twitter.cpp" />
     <ClCompile Include="WinMain.cpp" />
     <ClCompile Include="Wnd.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\KeyFile.hpp" />
+    <ClInclude Include="..\Transcode.hpp" />
     <ClInclude Include="ConsoleOut.h" />
+    <ClInclude Include="IniFile.h" />
     <ClInclude Include="MainWindow.h" />
+    <ClInclude Include="Twitter.h" />
     <ClInclude Include="Wnd.hpp" />
   </ItemGroup>
   <ItemGroup>
