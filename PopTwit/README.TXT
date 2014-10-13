@@ -21,7 +21,7 @@ http://slproweb.com/products/Win32OpenSSL.html
 ・libssh2
 http://www.libssh2.org/download/
 
-・cURL
+・libcurl
 http://curl.haxx.se/download.html
 
 
@@ -69,6 +69,9 @@ http://www.kmonos.net/nysl/
 
 
 【更新履歴】
+2014.10.12 v0.1.1.1
+・細かなバグを修正
+
 2014.10.12 v0.1.1.0
 ・%LOCALAPPDATA%\PopTwit が存在しない場合認証情報を保存できないバグを修正
 ・32ビット版を ANSI エンコードに変更

@@ -69,7 +69,7 @@ bool __stdcall LoadIniFile(LPCTSTR ininame)
 
 //---------------------------------------------------------------------------//
 
-// INI ファイルの書き込み
+// INI ファイルの書き出し
 bool __stdcall SaveIniFile(LPCTSTR ininame)
 {
     const size_t BUF_SIZE = 64;

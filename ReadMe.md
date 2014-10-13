@@ -1,11 +1,12 @@
-#PopTwit
+#PopTwit / PopTrend
 
-ツイッターに投稿するだけのアプリです。マルチアカウント／マルチユーザー対応。
+**[twitcurl](https://code.google.com/p/twitcurl/)** を 利用した Twitter クライアントアプリです。  
+詳細は各プロジェクトの README.TXT をご覧ください。
 
 ##開発環境
 
 Windows 7 64-bit  
-Microsoft Visual C++ 2013 SP1
+Microsoft Visual C++ 2013 Update 3
 
 
 ##動作環境
@@ -19,15 +20,18 @@ Microsoft Visual C++ 2013 SP1
  - ssleay32.dll
 - [libssh2](http://www.libssh2.org/download/)
   - libssh2.dll
-- [cURL](http://curl.haxx.se/download.html)
+- [libcurl](http://curl.haxx.se/download.html)
   - libcurl.dll
 
 
-##使い方
-1. 上記 4 つの dll ファイルを入手して、exe ファイルと同じ階層のフォルダに配置します。
-2. ウィンドウ右上にあるボタンをクリックするか、Ctrl+U でユーザーリスト編集画面を開き、自分の Twitter のユーザー名を入力します。
-3. 初回投稿時にパスワードを入力します。以後は取得したアクセストークンだけを使って書き込めるようになります。アクセストークンは %LOCALAPPDATA%PopTwit にあります。( Win7 であれば C:\Users\アカウント名\AppData\Local\PopTwit\ )
-4. Ctrl+↑ / Ctrl+↓ でユーザーを切り替えます。最大 8 アカウントまでに対応しています。
+##ソースコードをご利用の方へ
+ConsumerKey.h ファイルはレポジトリに含まれていません。  
+ご自身でファイルをご用意いただき、コンシューマーキーを定義してください。  
+例：
+'''c
+#define CONSUMER_KEY        "XXXXXXXXXXXXXXXXXXXXXXXXX"
+#define CONSUMER_KEY_SECRET "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+'''
 
 
 ##ライセンス

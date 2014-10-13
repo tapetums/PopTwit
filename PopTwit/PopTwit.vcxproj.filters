@@ -19,6 +19,12 @@
     <ClCompile Include="IniFile.cpp">
       <Filter>ソースファイル</Filter>
     </ClCompile>
+    <ClCompile Include="..\KeyFile.cpp">
+      <Filter>ソースファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Transcode.cpp">
+      <Filter>ソースファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Wnd.hpp">
@@ -37,6 +43,12 @@
       <Filter>ヘッダファイル</Filter>
     </ClInclude>
     <ClInclude Include="MainWindow.Utl.hpp">
+      <Filter>ヘッダファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\KeyFile.hpp">
+      <Filter>ヘッダファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Transcode.hpp">
       <Filter>ヘッダファイル</Filter>
     </ClInclude>
   </ItemGroup>

@@ -16,25 +16,11 @@
 #define StringCchPrintf wnsprintf
 #endif
 
-#include "shlobj.h"
-
+#include "../KeyFile.hpp"
+#include "../Transcode.hpp"
 #include "ConsoleOut.h"
 #include "Twitter.h"
 #include "ConsumerKey.h"
-
-//---------------------------------------------------------------------------//
-// twitcurl ライブラリ を使用
-//---------------------------------------------------------------------------//
-
-#include "include\twitcurl.h"
-
-#ifdef _WIN64
-#pragma comment(lib, "lib\\x64\\libcurl.lib")
-#pragma comment(lib, "lib\\x64\\twitcurl.lib")
-#else
-#pragma comment(lib, "lib\\x86\\libcurl.lib")
-#pragma comment(lib, "lib\\x86\\twitcurl.lib")
-#endif
 
 //---------------------------------------------------------------------------//
 
@@ -44,6 +30,20 @@
     #else
         #define thread_local static __declspec(thread)
     #endif
+#endif
+
+//---------------------------------------------------------------------------//
+// twitcurl ライブラリ を使用
+//---------------------------------------------------------------------------//
+
+#include "twitcurl.h"
+
+#ifdef _WIN64
+#pragma comment(lib, "lib/x64/libcurl.lib")
+#pragma comment(lib, "lib/x64/twitcurl.lib")
+#else
+#pragma comment(lib, "lib/x86/libcurl.lib")
+#pragma comment(lib, "lib/x86/twitcurl.lib")
 #endif
 
 //---------------------------------------------------------------------------//
@@ -61,183 +61,9 @@ extern bool      g_ask_each_tweet;
 // ダイアログに渡すデータ
 struct DlgData
 {
-    LPCTSTR username; // ユーザー名をダイアログに渡す
-    LPTSTR  password; // ここにパスワードが返ってくる
+    LPTSTR username; // ユーザー名をダイアログに渡す
+    LPTSTR password; // ここにパスワードが返ってくる
 };
-
-//---------------------------------------------------------------------------//
-// ユーティリティ関数
-//---------------------------------------------------------------------------//
-
-typedef unsigned char char8_t; // MBCS と UTF-8 を区別するため
-
-//---------------------------------------------------------------------------//
-
-// MBCS -> UTF-8
-char8_t* toUTF8(const char* str_mbcs)
-{
-    thread_local char16_t str_u16[1024];
-    thread_local char8_t  str_u8 [1024];
-
-    int len = 0;
-    len = ::MultiByteToWideChar
-    (
-        CP_ACP, MB_PRECOMPOSED, str_mbcs, -1, nullptr, 0
-    );
-    if ( len < 1 || 1024 < len )
-    {
-        return (char8_t*)"";
-    }
-
-    ::MultiByteToWideChar
-    (
-        CP_ACP, MB_PRECOMPOSED, str_mbcs, -1, (LPWSTR)str_u16, len
-    );
-
-    len = ::WideCharToMultiByte
-    (
-        CP_UTF8, 0, (LPCWSTR)str_u16, -1, nullptr, 0, nullptr, nullptr
-    );
-    if ( len < 1 || 1024 < len )
-    {
-        return (char8_t*)"";
-    }
-
-    ::WideCharToMultiByte
-    (
-        CP_UTF8, 0, (LPCWSTR)str_u16, -1, (LPSTR)str_u8, len, nullptr, nullptr
-    );
-
-    return str_u8;
-}
-
-//---------------------------------------------------------------------------//
-
-// UTF-16 -> UTF-8
-char8_t* toUTF8(const wchar_t* str_u16)
-{
-    thread_local char8_t str_u8[1024];
-
-    const auto len = ::WideCharToMultiByte
-    (
-        CP_UTF8, 0, str_u16, -1, nullptr, 0, nullptr, nullptr
-    );
-    if ( len < 1 || 1024 < len )
-    {
-        return (char8_t*)"";
-    }
-
-    ::WideCharToMultiByte
-    (
-        CP_UTF8, 0, str_u16, -1, (LPSTR)str_u8, len, nullptr, nullptr
-    );
-
-    return str_u8;
-}
-
-//---------------------------------------------------------------------------//
-
-char8_t* __stdcall ReadKeyFromFile(LPCTSTR username, LPCTSTR filename)
-{
-    thread_local char8_t key[MAX_PATH];
-    memset(key, 0, MAX_PATH * sizeof(char8_t));
-
-    TCHAR path[MAX_PATH];
-    ::SHGetFolderPath(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, path);
-
-    TCHAR buf[MAX_PATH];
-    ::StringCchPrintf
-    (
-        buf, MAX_PATH,
-        TEXT("%s\\%s\\%s_%s"), path, APP_NAME, username, filename
-    );
-    console_out(TEXT("ReadKeyFromFile(): %s"), buf);
-
-    const auto hFile = ::CreateFile
-    (
-        buf, GENERIC_READ, FILE_SHARE_READ, nullptr,
-        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr
-    );
-    if ( hFile == nullptr || hFile == INVALID_HANDLE_VALUE )
-    {
-        console_out(TEXT("Not found"));
-        return (char8_t*)"";
-    }
-
-    DWORD dw;
-    ::ReadFile(hFile, key, MAX_PATH, &dw, nullptr);
-
-    ::CloseHandle(hFile);
-    console_outA(("%s"), key);
-
-    return (dw > 0) ? (char8_t*)key : (char8_t*)"";
-}
-
-//---------------------------------------------------------------------------//
-
-bool __stdcall WriteKeyAsFile(LPCTSTR username, LPCTSTR filename, const char8_t* key)
-{
-    console_outA(("%s"), key);
-
-    TCHAR path[MAX_PATH];
-    ::SHGetFolderPath(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, path);
-
-    TCHAR buf[MAX_PATH];
-    ::StringCchPrintf
-    (
-        buf, MAX_PATH,
-        TEXT("%s\\%s"), path, APP_NAME
-    );
-    const auto ret = ::CreateDirectory(buf, nullptr);
-    if ( ret == 0 )
-    {
-        console_out(TEXT("Created AppData directory: %s"), buf);
-    }
-
-    ::StringCchPrintf
-    (
-        buf, MAX_PATH,
-        TEXT("%s\\%s\\%s_%s"), path, APP_NAME, username, filename
-    );
-    console_out(TEXT("WriteKeyAsFile(): %s"), buf);
-
-    const auto hFile = ::CreateFile
-    (
-        buf, GENERIC_WRITE, FILE_SHARE_WRITE, nullptr,
-        OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr
-    );
-    if ( hFile == nullptr || hFile == INVALID_HANDLE_VALUE )
-    {
-        console_out(TEXT("Could not open file to write"));
-        return false;
-    }
-
-    DWORD dw;
-    const auto len = ::lstrlenA((char*)key); // NULL文字は書き込まないので +1 しない
-    ::WriteFile(hFile, key, len * sizeof(char8_t), &dw, nullptr);
-    ::SetEndOfFile(hFile);
-
-    ::CloseHandle(hFile);
-
-    return (dw > 0) ? true : false;
-}
-
-//---------------------------------------------------------------------------//
-
-bool __stdcall DeleteKeyFile(LPCTSTR username, LPCTSTR filename)
-{
-    TCHAR path[MAX_PATH];
-    ::SHGetFolderPath(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, path);
-
-    TCHAR buf[MAX_PATH];
-    ::StringCchPrintf
-    (
-        buf, MAX_PATH,
-        TEXT("%s\\%s\\%s_%s"), path, APP_NAME, username, filename
-    );
-
-    return  ::DeleteFile(buf) ? true : false;
-}
 
 //---------------------------------------------------------------------------//
 // ダイアログ プロシージャ
@@ -246,7 +72,7 @@ bool __stdcall DeleteKeyFile(LPCTSTR username, LPCTSTR filename)
 // パスワード入力ダイアログのプロシージャ
 BOOL CALLBACK PassDlgProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
 {
-    thread_local LPCTSTR username;
+    thread_local LPCTSTR username = nullptr;
     thread_local LPTSTR  password = nullptr;
     thread_local HWND    txt_pass = nullptr;
 
@@ -288,29 +114,11 @@ BOOL CALLBACK PassDlgProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
 // Twitter 関連の関数
 //---------------------------------------------------------------------------//
 
-bool __stdcall Tweet
+bool __stdcall ConnectToTwitter
 (
-    HWND hwnd, size_t index, LPCTSTR username, LPCTSTR message
+    HWND hwnd, LPCTSTR username, twitCurl& twitterObj
 )
 {
-    TCHAR buf[MAX_PATH];
-
-    if ( g_ask_each_tweet )
-    {
-        ::StringCchPrintf(buf, MAX_PATH, TEXT("@%s から送信しますか？"), username);
-        const auto ret = ::MessageBox
-        (
-            hwnd, buf, APP_NAME, MB_YESNO | MB_ICONEXCLAMATION | MB_DEFBUTTON1
-        );
-        if ( ret != IDYES )
-        {
-            return false;
-        }
-    }
-
-    twitCurl twitterObj;
-    std::string replyMsg;
-
     // Your consumer keys
     std::string myConsumerKey( CONSUMER_KEY );
     std::string myConsumerSecuret( CONSUMER_KEY_SECRET );
@@ -338,80 +146,119 @@ bool __stdcall Tweet
         );
         twitterObj.getOAuth().setOAuthTokenKey( myOAuthAccessTokenKey );
         twitterObj.getOAuth().setOAuthTokenSecret( myOAuthAccessTokenSecret );
+
+        return true;
     }
-    else
+
+    TCHAR buf[MAX_PATH];
+
+    std::string userName( (char*)toUTF8(username) );
+    std::string passWord;
+    std::string replyMsg;
+
+    do
     {
-        std::string userName( (char*)toUTF8(username) );
-        std::string passWord;
-
-        do
+        // Show dialog box for password
+        DlgData data = { (LPTSTR)username, buf };
+        const auto ret = ::DialogBoxParam
+        (
+            g_hInst, MAKEINTRESOURCE(1000), hwnd, (DLGPROC)PassDlgProc, (LPARAM)&data
+        );
+        if ( ret == IDCANCEL )
         {
-            // Show dialog box for password
-            DlgData data = { username, buf };
-            const auto ret = ::DialogBoxParam
-            (
-                g_hInst, MAKEINTRESOURCE(1000), hwnd, (DLGPROC)PassDlgProc, (LPARAM)&data
-            );
-            if ( ret == IDCANCEL )
+            console_out(TEXT("%s: Tweet canceled"), APP_NAME);
+            return false;
+        }
+        passWord = (char*)toUTF8(buf);
+
+        // Retry to get access token key and secret
+        twitterObj.setTwitterUsername( userName );
+        twitterObj.setTwitterPassword( passWord );
+
+        // Step 2: Get request token key and secret
+        std::string authUrl;
+        twitterObj.oAuthRequestToken( authUrl );
+
+        // Step 3: Get PIN
+        // pass auth url to twitCurl and get it via twitCurl PIN handling
+        twitterObj.oAuthHandlePIN( authUrl );
+
+        // Step 4: Exchange request token with access token
+        twitterObj.oAuthAccessToken();
+
+        // Step 5: save this access token key and secret for future use
+        twitterObj.getOAuth().getOAuthTokenKey( myOAuthAccessTokenKey );
+        twitterObj.getOAuth().getOAuthTokenSecret( myOAuthAccessTokenSecret );
+
+        // Step 6: Save these keys in a file or wherever
+        WriteKeyAsFile
+        (
+            username, TEXT("token_key"), (char8_t*)myOAuthAccessTokenKey.c_str()
+        );
+        WriteKeyAsFile
+        (
+            username, TEXT("token_secret"), (char8_t*)myOAuthAccessTokenSecret.c_str()
+        );
+
+        // Account credentials verification
+        if ( twitterObj.accountVerifyCredGet() )
+        {
+            twitterObj.getLastWebResponse( replyMsg );
+            console_outA("accountVerifyCredGet web response: %s", replyMsg.c_str());
+            if ( std::string::npos == replyMsg.find("\"errors\"") )
             {
-                console_out(TEXT("%s: Tweet canceled"), APP_NAME);
-                return false;
+                console_out(TEXT("Got access token"));
+                break;
             }
-            passWord = (char*)toUTF8(buf);
+        }
+        else
+        {
+            twitterObj.getLastCurlError( replyMsg );
+            console_outA("accountVerifyCredGet error: %s", replyMsg.c_str());
+        }
 
-            // Retry to get access token key and secret
-            twitterObj.setTwitterUsername( userName );
-            twitterObj.setTwitterPassword( passWord );
+        // Delete keys which seemed to be invalid
+        DeleteKeyFile(username, TEXT("token_key"));
+        DeleteKeyFile(username, TEXT("token_secret"));
 
-            // Step 2: Get request token key and secret
-            std::string authUrl;
-            twitterObj.oAuthRequestToken( authUrl );
+    } while ( true );
 
-            // Step 3: Get PIN
-            // pass auth url to twitCurl and get it via twitCurl PIN handling
-            twitterObj.oAuthHandlePIN( authUrl );
+    return true;
+}
 
-            // Step 4: Exchange request token with access token
-            twitterObj.oAuthAccessToken();
+//---------------------------------------------------------------------------//
 
-            // Step 5: save this access token key and secret for future use
-            twitterObj.getOAuth().getOAuthTokenKey( myOAuthAccessTokenKey );
-            twitterObj.getOAuth().getOAuthTokenSecret( myOAuthAccessTokenSecret );
-
-            // Step 6: Save these keys in a file or wherever
-            WriteKeyAsFile
-            (
-                username, TEXT("token_key"), (char8_t*)myOAuthAccessTokenKey.c_str()
-            );
-            WriteKeyAsFile
-            (
-                username, TEXT("token_secret"), (char8_t*)myOAuthAccessTokenSecret.c_str()
-            );
-
-            // Account credentials verification
-            if ( twitterObj.accountVerifyCredGet() )
-            {
-                twitterObj.getLastWebResponse( replyMsg );
-                console_outA("accountVerifyCredGet web response: %s", replyMsg.c_str());
-                if ( std::string::npos == replyMsg.find("\"errors\"") )
-                {
-                    console_out(TEXT("Got access token"));
-                    break;
-                }
-            }
-            else
-            {
-                twitterObj.getLastCurlError( replyMsg );
-                console_outA("accountVerifyCredGet error: %s", replyMsg.c_str());
-            }
-
-        } while ( true );
+bool __stdcall Tweet
+(
+    HWND hwnd, LPCTSTR username, LPCTSTR message
+)
+{
+    // 確認メッセージを表示
+    TCHAR buf[MAX_PATH];
+    if ( g_ask_each_tweet )
+    {
+        ::StringCchPrintf(buf, MAX_PATH, TEXT("@%s から送信しますか？"), username);
+        const auto ret = ::MessageBox
+        (
+            hwnd, buf, APP_NAME, MB_YESNO | MB_ICONEXCLAMATION | MB_DEFBUTTON1
+        );
+        if ( ret != IDYES )
+        {
+            return false;
+        }
     }
 
-    // Post a new status message
-    std::string msgStr( (char*)toUTF8(message) );
-    replyMsg = (char*)"";
+    twitCurl twitterObj;
+    std::string replyMsg;
 
+    // https で接続
+    if ( ! ConnectToTwitter(hwnd, username, twitterObj) )
+    {
+        return false;
+    }
+
+    // メッセージを投稿
+    std::string msgStr( (char*)toUTF8(message) );
     if ( twitterObj.statusUpdate( msgStr ) )
     {
         twitterObj.getLastWebResponse( replyMsg );
@@ -427,10 +274,6 @@ bool __stdcall Tweet
         twitterObj.getLastCurlError( replyMsg );
         console_outA("statusUpdate error: %s", replyMsg.c_str());
     }
-
-    // Delete keys which are indicated to be invalid
-    DeleteKeyFile(username, TEXT("token_key"));
-    DeleteKeyFile(username, TEXT("token_secret"));
 
     return false;
 }

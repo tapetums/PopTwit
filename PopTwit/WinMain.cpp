@@ -30,48 +30,8 @@ extern LPCTSTR   APP_NAME = TEXT("PopTwit");
 extern HINSTANCE g_hInst  = nullptr;
 
 //---------------------------------------------------------------------------//
-// CRT を使わないため new/delete を自前で実装
-//---------------------------------------------------------------------------//
-
-#ifdef _NODEFLIB
-
-void* __cdecl operator new(size_t size)
-{
-    return ::HeapAlloc(::GetProcessHeap(), 0, size);
-}
-
-void __cdecl operator delete(void* p)
-{
-    if ( p != nullptr ) ::HeapFree(::GetProcessHeap(), 0, p);
-}
-
-void* __cdecl operator new[](size_t size)
-{
-    return ::HeapAlloc(::GetProcessHeap(), 0, size);
-}
-
-void __cdecl operator delete[](void* p)
-{
-    if ( p != nullptr ) ::HeapFree(::GetProcessHeap(), 0, p);
-}
-
-#endif
-
-//---------------------------------------------------------------------------//
 // アプリケーション エントリポイント
 //---------------------------------------------------------------------------//
-
-#ifdef _NODEFLIB
-
-// プログラムサイズを小さくするためにCRTを除外
-#pragma comment(linker, "/nodefaultlib:libcmt.lib")
-#ifdef _UNICODE
-#pragma comment(linker, "/entry:wWinMain")
-#else
-#pragma comment(linker, "/entry:WinMain")
-#endif
-
-#endif
 
 INT32 WINAPI _tWinMain
 (
@@ -92,12 +52,10 @@ INT32 WINAPI _tWinMain
     const auto hMutex = ::CreateMutex(nullptr, FALSE, APP_NAME);
     if ( nullptr == hMutex )
     {
-        //console_out(TEXT("%s: CreateMutex() failed"), APP_NAME);
         return -4;
     }
     else if ( ::GetLastError() == ERROR_ALREADY_EXISTS )
     {
-        //console_out(TEXT("%s is already running"), APP_NAME);
         ::CloseHandle(hMutex);
         return -3;
     }
@@ -145,12 +103,13 @@ INT32 WINAPI _tWinMain
         ::DispatchMessage(&msg);
     }
 
-    // INI ファイルの書き込み
+    // INI ファイルの書き出し
     SaveIniFile(ininame);
 
     // COM の終了処理
     ::CoUninitialize();
 
+    // ミューテックスの解放
     if ( hMutex )
     {
         ::CloseHandle(hMutex);

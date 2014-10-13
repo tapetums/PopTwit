@@ -1,8 +1,11 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2013 for Windows Desktop
 VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PopTwit", "PopTwit\PopTwit.vcxproj", "{ACA4C012-79B4-4DB7-A376-336B300254DA}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PopTrend", "PopTrend\PopTrend.vcxproj", "{C50B49A9-6060-445B-9B95-0AC69DD9E514}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,13 +16,19 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{ACA4C012-79B4-4DB7-A376-336B300254DA}.Debug|Win32.ActiveCfg = Debug|Win32
-		{ACA4C012-79B4-4DB7-A376-336B300254DA}.Debug|Win32.Build.0 = Debug|Win32
 		{ACA4C012-79B4-4DB7-A376-336B300254DA}.Debug|x64.ActiveCfg = Debug|x64
-		{ACA4C012-79B4-4DB7-A376-336B300254DA}.Debug|x64.Build.0 = Debug|x64
 		{ACA4C012-79B4-4DB7-A376-336B300254DA}.Release|Win32.ActiveCfg = Release|Win32
 		{ACA4C012-79B4-4DB7-A376-336B300254DA}.Release|Win32.Build.0 = Release|Win32
 		{ACA4C012-79B4-4DB7-A376-336B300254DA}.Release|x64.ActiveCfg = Release|x64
 		{ACA4C012-79B4-4DB7-A376-336B300254DA}.Release|x64.Build.0 = Release|x64
+		{C50B49A9-6060-445B-9B95-0AC69DD9E514}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C50B49A9-6060-445B-9B95-0AC69DD9E514}.Debug|Win32.Build.0 = Debug|Win32
+		{C50B49A9-6060-445B-9B95-0AC69DD9E514}.Debug|x64.ActiveCfg = Debug|x64
+		{C50B49A9-6060-445B-9B95-0AC69DD9E514}.Debug|x64.Build.0 = Debug|x64
+		{C50B49A9-6060-445B-9B95-0AC69DD9E514}.Release|Win32.ActiveCfg = Release|Win32
+		{C50B49A9-6060-445B-9B95-0AC69DD9E514}.Release|Win32.Build.0 = Release|Win32
+		{C50B49A9-6060-445B-9B95-0AC69DD9E514}.Release|x64.ActiveCfg = Release|x64
+		{C50B49A9-6060-445B-9B95-0AC69DD9E514}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

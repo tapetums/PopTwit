@@ -24,38 +24,7 @@
 extern LPCTSTR APP_NAME;
 
 //---------------------------------------------------------------------------//
-// リソース管理まわり
-//---------------------------------------------------------------------------//
-
-HFONT __stdcall MakeFont(INT32 font_size, LPCTSTR font_name)
-{
-    const auto hFont = ::CreateFont
-    (
-        font_size, 0, 0, 0,
-        FW_REGULAR, FALSE, FALSE, FALSE,
-        DEFAULT_CHARSET,
-        OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH,
-        font_name
-    );
-
-    return hFont;
-}
-
-//---------------------------------------------------------------------------//
-
-bool __stdcall DeleteFont(HFONT hFont)
-{
-    if ( hFont == nullptr )
-    {
-        return false;
-    }
-
-    ::DeleteObject(hFont);
-    hFont = nullptr;
-
-    return true;
-}
-
+// 一時保存情報
 //---------------------------------------------------------------------------//
 
 void __stdcall ClearMessagestub(LPTSTR msgstub)

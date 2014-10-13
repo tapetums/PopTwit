@@ -147,9 +147,10 @@ HWND __stdcall Create
 void __stdcall AdjustRect(HWND hwnd, INT32& w, INT32& h)
 {
     RECT rc = { 0, 0, w, h };
-    const BOOL hasMenu = ::GetMenu(hwnd) ? TRUE : FALSE;
     const auto style   = (DWORD)::GetWindowLongPtr(hwnd, GWL_STYLE);
     const auto styleEx = (DWORD)::GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+    const auto isChile = style & WS_CHILD;
+    const BOOL hasMenu = (!isChile && ::GetMenu(hwnd)) ? TRUE : FALSE;
 
     ::AdjustWindowRectEx(&rc, style, hasMenu, styleEx);
     w = rc.right  - rc.left;

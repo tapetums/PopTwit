@@ -9,6 +9,21 @@
 #pragma once
 
 //---------------------------------------------------------------------------//
+// コントロール識別子
+//---------------------------------------------------------------------------//
+
+enum Controls : UINT32
+{
+    CTRL_CBX_ACCOUNT = 40001,
+    CTRL_TXT_TWEET,
+    CTRL_BTN_SEND,
+    CTRL_BTN_CLOSE,
+    CTRL_BTN_PICTURE,
+    CTRL_BTN_SHORTEN_URL,
+    CTRL_BTN_USER,
+};
+
+//---------------------------------------------------------------------------//
 
 // ウィンドウプロシージャ
 LRESULT __stdcall MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp);

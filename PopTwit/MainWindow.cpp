@@ -20,6 +20,7 @@
 #include "shlobj.h"
 #include <shobjidl.h>
 
+#include "../Font.hpp"
 #include "Wnd.hpp"
 #include "Twitter.h"
 #include "IniFile.h"
@@ -46,29 +47,18 @@ extern HINSTANCE g_hInst;
 // グローバル変数の実体宣言
 //---------------------------------------------------------------------------//
 
-HTHEME  g_hTheme      = nullptr;
+// ビジュアルスタイル テーマ
+HTHEME  g_hTheme = nullptr;
+
+// フォント情報
 INT32   g_font_size   = 20;
 LPCTSTR g_font_tweet  = TEXT("Meiryo");;
 LPCTSTR g_font_symbol = TEXT("Segoe UI Symbol");;
-
 HFONT font_tweet, font_user, font_button, font_symbol;
-HWND  cbx_user, txt_tweet;
-HWND  btn_send, btn_close, btn_shorten, btn_pic, btn_user;
 
-//---------------------------------------------------------------------------//
-// コントロール識別子
-//---------------------------------------------------------------------------//
-
-enum Controls : UINT32
-{
-    CTRL_CBX_ACCOUNT = 40001,
-    CTRL_TXT_TWEET,
-    CTRL_BTN_SEND,
-    CTRL_BTN_CLOSE,
-    CTRL_BTN_PICTURE,
-    CTRL_BTN_SHORTEN_URL,
-    CTRL_BTN_USER,
-};
+// 子コントロールのハンドル
+HWND cbx_user, txt_tweet;
+HWND btn_send, btn_close, btn_shorten, btn_pic, btn_user;
 
 //---------------------------------------------------------------------------//
 // ウィンドウプロシージャ
@@ -223,7 +213,7 @@ LRESULT __stdcall OnCreate(HWND hwnd)
 #if defined _UNICODE || UNICODE
         0, TEXT("BUTTON"), TEXT("🔗"),
 #else
-        0, TEXT("BUTTON"), TEXT("s"),
+        0, TEXT("BUTTON"), TEXT("L"),
 #endif
         WS_CHILD | WS_VISIBLE | WS_DISABLED |
         BS_PUSHBUTTON | BS_CENTER | BS_VCENTER,
@@ -385,6 +375,7 @@ LRESULT __stdcall OnKeyDown(HWND hwnd, INT16 nVirtKey, INT16 lKeyData)
     {
         case 'U':
         {
+            // ユーザーリスト編集画面を表示
             if ( 0x80 & ::GetKeyState(VK_CONTROL) )
             {
                 OnCommand(hwnd, CTRL_BTN_USER, 0);
@@ -393,6 +384,7 @@ LRESULT __stdcall OnKeyDown(HWND hwnd, INT16 nVirtKey, INT16 lKeyData)
         }
         case VK_RETURN:
         {
+            // メッセージを投稿
             if ( 0x80 & ::GetKeyState(VK_CONTROL) )
             {
                 OnCommand(hwnd, CTRL_BTN_SEND, 0);
@@ -401,12 +393,14 @@ LRESULT __stdcall OnKeyDown(HWND hwnd, INT16 nVirtKey, INT16 lKeyData)
         }
         case VK_ESCAPE:
         {
+            // ウィンドウを閉じる
             OnCommand(hwnd, CTRL_BTN_CLOSE, 0);
             break;
         }
         case VK_UP:
         case VK_DOWN:
         {
+            // ユーザーの切り替え
             if ( 0x80 & ::GetKeyState(VK_CONTROL) )
             {
                 const auto count = ::SendMessage(cbx_user, CB_GETCOUNT, 0, 0);
@@ -475,7 +469,7 @@ LRESULT __stdcall OnCommand(HWND hwnd, UINT16 wId, UINT16 nCode)
             }
 
             // ツイートする
-            const auto ret = Tweet(hwnd, g_user_index, username, message);
+            const auto ret = Tweet(hwnd, username, message);
             if ( ret )
             {
                 // 送信に成功したらエディットボックスを空にする
@@ -569,4 +563,4 @@ LRESULT __stdcall OnThemeChanged(HWND hwnd)
 
 //---------------------------------------------------------------------------//
 
-// MainWindow.hpp
+// MainWindow.cpp

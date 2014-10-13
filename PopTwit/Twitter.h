@@ -14,7 +14,7 @@
 
 bool __stdcall Tweet
 (
-    HWND hwnd, size_t index, LPCTSTR username, LPCTSTR message
+    HWND hwnd, LPCTSTR username, LPCTSTR message
 );
 
 //---------------------------------------------------------------------------//
